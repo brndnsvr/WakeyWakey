@@ -1,12 +1,11 @@
 # WakeyWakey
 
-A tiny macOS menu bar app that keeps your Mac awake and helps keep IM presence “green” by simulating subtle user activity only when you’ve been idle.
+A tiny macOS menu bar app that keeps your Mac awake by simulating subtle user activity only when you’ve been idle.
 
 - Menu bar only (no Dock icon)
 - Enable/Disable toggle with clear icon state
 - Generates small, random mouse movements only after 42 seconds of inactivity, then at randomized 42–79 second intervals
 - Prevents system idle sleep while enabled
-- No app-specific/Teams-specific logic required
 
 
 ## Requirements
