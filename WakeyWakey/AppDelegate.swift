@@ -144,12 +144,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Choose random deltas between 11 and 23 pixels for both axes, with random signs
         let cocoaPoint = NSEvent.mouseLocation
 
-        // Build the union rect of all screens to clamp within desktop bounds
         let screens = NSScreen.screens
-        var union = screens.first?.frame ?? NSRect(x: 0, y: 0, width: 1920, height: 1080)
-        for s in screens.dropFirst() {
-            union = union.union(s.frame)
-        }
+
+        // Determine the primary (menu bar) screen in Cocoa coordinates (origin at 0,0)
+        let mainScreen = screens.first(where: { $0.frame.origin == .zero }) ?? NSScreen.main ?? screens.first!
+        let mainTopY = mainScreen.frame.maxY
+
+        // Determine the screen currently under the cursor; fallback to main if unknown
+        let currentScreen = screens.first(where: { $0.frame.contains(cocoaPoint) }) ?? NSScreen.main ?? mainScreen
 
         let dxMagnitude = CGFloat(Int.random(in: 11...23))
         let dyMagnitude = CGFloat(Int.random(in: 11...23))
@@ -158,12 +160,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         var newCocoa = NSPoint(x: cocoaPoint.x + dx, y: cocoaPoint.y + dy)
 
-        // Clamp to desktop bounds
-        newCocoa.x = max(union.minX, min(newCocoa.x, union.maxX - 1))
-        newCocoa.y = max(union.minY, min(newCocoa.y, union.maxY - 1))
+        // Clamp within the current screen’s frame to avoid jumping across displays or into gaps
+        let f = currentScreen.frame
+        newCocoa.x = max(f.minX, min(newCocoa.x, f.maxX - 1))
+        newCocoa.y = max(f.minY, min(newCocoa.y, f.maxY - 1))
 
-        // Convert Cocoa (origin bottom-left) to Quartz global coords (origin top-left of main display)
-        let newQuartz = CGPoint(x: newCocoa.x, y: union.maxY - newCocoa.y)
+        // Convert Cocoa (origin bottom-left of main screen) to Quartz global coords (origin top-left of main screen)
+        let newQuartz = CGPoint(x: newCocoa.x, y: mainTopY - newCocoa.y)
 
         if let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: newQuartz, mouseButton: .left) {
             move.post(tap: .cghidEventTap)

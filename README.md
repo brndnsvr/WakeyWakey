@@ -21,7 +21,7 @@ A tiny macOS menu bar app that keeps your Mac awake by simulating subtle user ac
   - It waits until you’ve been idle for at least 42 seconds
   - Then it performs a single, small cursor move at random intervals between 42–79 seconds
     - Each move shifts the cursor by independent random dx and dy between 11–23 pixels in random directions
-    - Movements are clamped within your desktop bounds and work across multiple displays
+    - Movements are clamped within the current screen under the cursor and anchored to the main display’s coordinate origin to avoid snapping; works across multiple monitors (including DisplayLink)
 - When you click Disable:
   - Sleep prevention and activity generation stop immediately
 - Menu bar icon:
@@ -152,6 +152,8 @@ Planned/possible enhancements once the core is stable:
   - Jiggle only happens after 42 seconds of inactivity; move away from the mouse/keyboard for ~45 seconds to test
 - Cannot control the mouse
   - Ensure Accessibility permission is granted and the app has been relaunched after granting
+- Pointer jumps to the primary display during jiggle on multi-monitor setups (including DisplayLink)
+  - Movements are clamped to the current screen and coordinates are anchored to the main display to avoid cross-display snapping. If issues persist, restart DisplayLink Manager, re-plug displays, and re-grant Accessibility permission for WakeyWakey, then relaunch. (Fix implemented in `AppDelegate.performActivity()`.)
 - Gatekeeper warning on another Mac
   - Control-click the app and choose Open; confirm the dialog
 
