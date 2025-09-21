@@ -110,8 +110,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func tick() {
         guard isEnabled else { return }
 
-        // Determine seconds since last user input event
-        let idle = CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: .null)
+        // Determine seconds since last user input event (Option A):
+        // Take the minimum across explicit keyboard and mouse event types for robustness
+        let eventTypes: [CGEventType] = [
+            .mouseMoved, .leftMouseDown, .leftMouseDragged,
+            .rightMouseDown, .rightMouseDragged,
+            .otherMouseDown, .otherMouseDragged,
+            .scrollWheel, .keyDown, .keyUp, .flagsChanged
+        ]
+        let idle = eventTypes
+            .map { CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: $0) }
+            .min() ?? 0.0
 
         if idle < idleThreshold {
             // User has been active recently; reset schedule so we fire immediately after next threshold
@@ -140,8 +149,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func performActivity() {
-        // Move mouse a small random distance in a random direction (visible but subtle)
-        // Choose random deltas between 11 and 23 pixels for both axes, with random signs
+        // Move mouse a small distance; 52% of the time bias toward the center of the current screen
         let cocoaPoint = NSEvent.mouseLocation
 
         let screens = NSScreen.screens
@@ -153,20 +161,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Determine the screen currently under the cursor; fallback to main if unknown
         let currentScreen = screens.first(where: { $0.frame.contains(cocoaPoint) }) ?? NSScreen.main ?? mainScreen
 
-        let dxMagnitude = CGFloat(Int.random(in: 11...23))
-        let dyMagnitude = CGFloat(Int.random(in: 11...23))
-        let dx = Bool.random() ? dxMagnitude : -dxMagnitude
-        let dy = Bool.random() ? dyMagnitude : -dyMagnitude
+        let step = CGFloat(Int.random(in: 11...23))
+        let biasToCenter = Int.random(in: 1...100) <= 52
 
-        var newCocoa = NSPoint(x: cocoaPoint.x + dx, y: cocoaPoint.y + dy)
+        var target = CGPoint(x: cocoaPoint.x, y: cocoaPoint.y)
+        if biasToCenter {
+            // Step toward the center of the current screen
+            let f = currentScreen.frame
+            let center = CGPoint(x: f.midX, y: f.midY)
+            let vx = center.x - cocoaPoint.x
+            let vy = center.y - cocoaPoint.y
+            let dist = sqrt(vx*vx + vy*vy)
+            if dist >= 1.0 {
+                let nx = vx / dist
+                let ny = vy / dist
+                target.x += nx * min(step, dist)
+                target.y += ny * min(step, dist)
+            } else {
+                // Already at/near center; fall back to a random small move
+                let dx = (Bool.random() ? 1 : -1) * CGFloat(Int.random(in: 11...23))
+                let dy = (Bool.random() ? 1 : -1) * CGFloat(Int.random(in: 11...23))
+                target.x += dx
+                target.y += dy
+            }
+        } else {
+            // Random small move in any direction
+            let dx = (Bool.random() ? 1 : -1) * CGFloat(Int.random(in: 11...23))
+            let dy = (Bool.random() ? 1 : -1) * CGFloat(Int.random(in: 11...23))
+            target.x += dx
+            target.y += dy
+        }
 
         // Clamp within the current screen’s frame to avoid jumping across displays or into gaps
         let f = currentScreen.frame
-        newCocoa.x = max(f.minX, min(newCocoa.x, f.maxX - 1))
-        newCocoa.y = max(f.minY, min(newCocoa.y, f.maxY - 1))
+        target.x = max(f.minX, min(target.x, f.maxX - 1))
+        target.y = max(f.minY, min(target.y, f.maxY - 1))
 
         // Convert Cocoa (origin bottom-left of main screen) to Quartz global coords (origin top-left of main screen)
-        let newQuartz = CGPoint(x: newCocoa.x, y: mainTopY - newCocoa.y)
+        let newQuartz = CGPoint(x: target.x, y: mainTopY - target.y)
 
         if let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: newQuartz, mouseButton: .left) {
             move.post(tap: .cghidEventTap)
