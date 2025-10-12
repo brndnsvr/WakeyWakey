@@ -110,7 +110,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func tick() {
         guard isEnabled else { return }
 
-        // Determine seconds since last user input event (Option A):
+        // Check if Universal Control might be active by detecting cursor position changes
+        // even when no local events are registered
+        let currentMousePos = NSEvent.mouseLocation
+        if hasMouseMovedSinceLastCheck(currentPos: currentMousePos) {
+            // Mouse has moved, consider user active even if no HID events
+            nextActivityDueAt = nil
+            return
+        }
+
+        // Determine seconds since last user input event
         // Take the minimum across explicit keyboard and mouse event types for robustness
         let eventTypes: [CGEventType] = [
             .mouseMoved, .leftMouseDown, .leftMouseDragged,
@@ -143,61 +152,145 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    // Track mouse position to detect Universal Control movement
+    private var lastKnownMousePos: CGPoint?
+    private var lastMouseMoveTime: Date?
+
+    private func hasMouseMovedSinceLastCheck(currentPos: CGPoint) -> Bool {
+        defer {
+            lastKnownMousePos = currentPos
+        }
+
+        guard let lastPos = lastKnownMousePos else {
+            // First check, store position
+            return false
+        }
+
+        // Check if mouse position has changed
+        let moved = abs(currentPos.x - lastPos.x) > 0.5 || abs(currentPos.y - lastPos.y) > 0.5
+
+        if moved {
+            let now = Date()
+            // If mouse moved, check if it's recent movement (within last 2 seconds)
+            // This helps distinguish between our own jiggle movements and actual user movement
+            if let lastMoveTime = lastMouseMoveTime {
+                let timeSinceLastMove = now.timeIntervalSince(lastMoveTime)
+                if timeSinceLastMove < 2.0 {
+                    // Recent continuous movement, likely user activity
+                    lastMouseMoveTime = now
+                    return true
+                }
+            }
+            lastMouseMoveTime = now
+            return true
+        }
+
+        // Check if we've been still too long (reset movement tracking after idle period)
+        if let lastMoveTime = lastMouseMoveTime {
+            let timeSinceLastMove = Date().timeIntervalSince(lastMoveTime)
+            if timeSinceLastMove > idleThreshold {
+                lastMouseMoveTime = nil
+            }
+        }
+
+        return false
+    }
+
     private func scheduleNextActivity(afterNow now: Date) {
         let interval = TimeInterval(Int.random(in: Int(minInterval)...Int(maxInterval)))
         nextActivityDueAt = now.addingTimeInterval(interval)
     }
 
     private func performActivity() {
-        // Move mouse a small distance; 52% of the time bias toward the center of the current screen
-        let cocoaPoint = NSEvent.mouseLocation
+        // Get current mouse position directly in Quartz coordinates to avoid conversion issues
+        guard let currentQuartzPos = CGEvent(source: nil)?.location else {
+            // Fallback: get from NSEvent and convert
+            let cocoaPoint = NSEvent.mouseLocation
+            performActivityWithCocoaPoint(cocoaPoint)
+            return
+        }
 
+        // Work directly in Quartz coordinates (origin top-left)
         let screens = NSScreen.screens
+        guard !screens.isEmpty else { return }
 
-        // Determine the primary (menu bar) screen in Cocoa coordinates (origin at 0,0)
+        // Find the main screen for coordinate system reference
         let mainScreen = screens.first(where: { $0.frame.origin == .zero }) ?? NSScreen.main ?? screens.first!
         let mainTopY = mainScreen.frame.maxY
 
-        // Determine the screen currently under the cursor; fallback to main if unknown
-        let currentScreen = screens.first(where: { $0.frame.contains(cocoaPoint) }) ?? NSScreen.main ?? mainScreen
+        // Convert current Quartz position to Cocoa for screen detection
+        let cocoaPoint = CGPoint(x: currentQuartzPos.x, y: mainTopY - currentQuartzPos.y)
 
+        // Find current screen
+        let currentScreen = screens.first(where: { $0.frame.contains(cocoaPoint) }) ?? mainScreen
+
+        // Calculate movement
         let step = CGFloat(Int.random(in: 11...23))
         let biasToCenter = Int.random(in: 1...100) <= 52
 
-        var target = CGPoint(x: cocoaPoint.x, y: cocoaPoint.y)
+        var targetQuartz = currentQuartzPos
+
         if biasToCenter {
-            // Step toward the center of the current screen
+            // Convert screen center to Quartz coordinates
             let f = currentScreen.frame
-            let center = CGPoint(x: f.midX, y: f.midY)
-            let vx = center.x - cocoaPoint.x
-            let vy = center.y - cocoaPoint.y
+            let centerCocoa = CGPoint(x: f.midX, y: f.midY)
+            let centerQuartz = CGPoint(x: centerCocoa.x, y: mainTopY - centerCocoa.y)
+
+            let vx = centerQuartz.x - currentQuartzPos.x
+            let vy = centerQuartz.y - currentQuartzPos.y
             let dist = sqrt(vx*vx + vy*vy)
+
             if dist >= 1.0 {
                 let nx = vx / dist
                 let ny = vy / dist
-                target.x += nx * min(step, dist)
-                target.y += ny * min(step, dist)
+                targetQuartz.x += nx * min(step, dist)
+                targetQuartz.y += ny * min(step, dist)
             } else {
-                // Already at/near center; fall back to a random small move
-                let dx = (Bool.random() ? 1 : -1) * CGFloat(Int.random(in: 11...23))
-                let dy = (Bool.random() ? 1 : -1) * CGFloat(Int.random(in: 11...23))
-                target.x += dx
-                target.y += dy
+                // Already at center, small random move
+                targetQuartz.x += (Bool.random() ? 1 : -1) * CGFloat(Int.random(in: 11...23))
+                targetQuartz.y += (Bool.random() ? 1 : -1) * CGFloat(Int.random(in: 11...23))
             }
         } else {
-            // Random small move in any direction
-            let dx = (Bool.random() ? 1 : -1) * CGFloat(Int.random(in: 11...23))
-            let dy = (Bool.random() ? 1 : -1) * CGFloat(Int.random(in: 11...23))
-            target.x += dx
-            target.y += dy
+            // Random small move
+            targetQuartz.x += (Bool.random() ? 1 : -1) * CGFloat(Int.random(in: 11...23))
+            targetQuartz.y += (Bool.random() ? 1 : -1) * CGFloat(Int.random(in: 11...23))
         }
 
-        // Clamp within the current screen’s frame to avoid jumping across displays or into gaps
+        // Clamp to current screen bounds (convert bounds to Quartz)
+        let f = currentScreen.frame
+        let minQuartzY = mainTopY - f.maxY
+        let maxQuartzY = mainTopY - f.minY
+
+        targetQuartz.x = max(f.minX, min(targetQuartz.x, f.maxX - 1))
+        targetQuartz.y = max(minQuartzY, min(targetQuartz.y, maxQuartzY - 1))
+
+        // Post the mouse move event
+        if let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: targetQuartz, mouseButton: .left) {
+            move.post(tap: .cghidEventTap)
+        }
+    }
+
+    private func performActivityWithCocoaPoint(_ cocoaPoint: CGPoint) {
+        // Fallback method using original logic
+        let screens = NSScreen.screens
+        guard !screens.isEmpty else { return }
+
+        let mainScreen = screens.first(where: { $0.frame.origin == .zero }) ?? NSScreen.main ?? screens.first!
+        let mainTopY = mainScreen.frame.maxY
+        let currentScreen = screens.first(where: { $0.frame.contains(cocoaPoint) }) ?? mainScreen
+
+        let step = CGFloat(Int.random(in: 11...23))
+        var target = cocoaPoint
+
+        // Simple random move to avoid complexity in fallback
+        target.x += (Bool.random() ? 1 : -1) * step
+        target.y += (Bool.random() ? 1 : -1) * step
+
+        // Clamp to screen
         let f = currentScreen.frame
         target.x = max(f.minX, min(target.x, f.maxX - 1))
         target.y = max(f.minY, min(target.y, f.maxY - 1))
 
-        // Convert Cocoa (origin bottom-left of main screen) to Quartz global coords (origin top-left of main screen)
         let newQuartz = CGPoint(x: target.x, y: mainTopY - target.y)
 
         if let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: newQuartz, mouseButton: .left) {
