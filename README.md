@@ -53,6 +53,7 @@ WakeyWakey/
 │   ├── generate_project.sh           # Run xcodegen generate
 │   ├── install.sh                    # Copy built app to /Applications
 │   ├── kill.sh                       # Kill running app
+│   ├── release.sh                    # Create DMG and GitHub release
 │   └── run.sh                        # Open app from /Applications
 ├── Icon_WakeyWakey.icon/
 │   ├── Assets/image.png              # source image for app icon
@@ -97,6 +98,23 @@ brew install xcodegen
 
 
 ## Release build and distribution
+
+### Quick release (recommended)
+Create a DMG with drag-to-Applications installer:
+```
+./scripts/release.sh 1.0.0
+```
+This builds the app and creates `dist/WakeyWakey-1.0.0.dmg`.
+
+To also publish to GitHub:
+```
+./scripts/release.sh 1.0.0 --publish
+```
+This creates the DMG, tags the release, and uploads to GitHub Releases.
+
+Requires: `brew install create-dmg`
+
+### Manual release build
 Create a Release build:
 ```
 ./scripts/build_release.sh
@@ -109,23 +127,11 @@ Copy to Applications on this Mac:
 ```
 cp -R build/Build/Products/Release/WakeyWakey.app /Applications/
 ```
-Create a distributable zip (already used in our workflow):
-```
-mkdir -p dist
-# Using ditto preserves macOS metadata and resource forks for apps
-ditto -c -k --sequesterRsrc --keepParent build/Build/Products/Release/WakeyWakey.app dist/WakeyWakey-Release.zip
-```
-Install on another Mac:
-- Transfer the zip (AirDrop or scp)
-- Unzip with Finder or:
-```
-ditto -x -k ~/Downloads/WakeyWakey-Release.zip ~/Downloads/
-```
-- Move to Applications:
-```
-mv ~/Downloads/WakeyWakey.app /Applications/
-```
-- First run on another Mac may require Control-click > Open (Gatekeeper)
+
+### Install on another Mac
+- Download the DMG from GitHub Releases (or transfer via AirDrop/scp)
+- Open the DMG and drag WakeyWakey to Applications
+- First run may require Control-click > Open (Gatekeeper)
 - Grant Accessibility permissions, then relaunch
 
 

@@ -25,6 +25,12 @@ brew install xcodegen
 # Release build
 ./scripts/build_release.sh
 cp -R build/Build/Products/Release/WakeyWakey.app /Applications/
+
+# Create DMG for distribution
+./scripts/release.sh 1.0.0
+
+# Create DMG and publish to GitHub
+./scripts/release.sh 1.0.0 --publish
 ```
 
 ## Git Workflow
