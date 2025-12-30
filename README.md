@@ -64,4 +64,4 @@ Want to build from source? See [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## License
 
-TBD
+[MIT](LICENSE)
