@@ -27,6 +27,35 @@ brew install xcodegen
 cp -R build/Build/Products/Release/WakeyWakey.app /Applications/
 ```
 
+## Git Workflow
+
+**Always branch from main for any changes:**
+
+1. Create a branch with descriptive name:
+   ```bash
+   git checkout -b <type>/<short-description>
+   ```
+
+   | Type | Use for |
+   |------|---------|
+   | `feat/` | New features |
+   | `fix/` | Bug fixes |
+   | `docs/` | Documentation |
+   | `refactor/` | Code restructuring |
+   | `chore/` | Maintenance |
+
+2. Make changes and commit
+
+3. Push and create PR:
+   ```bash
+   git push -u origin <branch-name>
+   gh pr create --fill
+   ```
+
+4. Merge PR to main (squash or merge commit)
+
+**Never commit directly to main.**
+
 ## Project Structure
 
 ```
