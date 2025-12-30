@@ -4,7 +4,7 @@
 
 WakeyWakey is a Swift/AppKit macOS menu bar application that prevents system idle sleep by simulating subtle mouse movements. It runs as a menu bar app with no Dock icon (LSUIElement=true).
 
-**Tech Stack**: Swift, AppKit, IOKit, XcodeGen
+**Tech Stack**: Swift, AppKit, IOKit, ServiceManagement, XcodeGen
 **Target**: macOS 15.0+, arm64
 
 ## Quick Commands
@@ -169,6 +169,27 @@ CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: quar
 - **EnabledDueNow**: perform jiggle, schedule next 42-79s
 - **EnabledIdleAboveThresholdWaiting**: waiting for next scheduled jiggle
 
+### Timer Feature
+```swift
+private var timerExpiresAt: Date?  // nil = no timer, Date = auto-disable time
+
+private func enableForDuration(_ seconds: TimeInterval) {
+    timerExpiresAt = Date().addingTimeInterval(seconds)
+    if !isEnabled {
+        isEnabled = true
+        beginPreventingSleep()
+    }
+}
+
+// In tick(): check expiration before other logic
+if let expiresAt = timerExpiresAt, Date() >= expiresAt {
+    timerExpiresAt = nil
+    isEnabled = false
+    endPreventingSleep()
+    return
+}
+```
+
 ## Anti-Patterns (Do NOT)
 
 ### Menu Bar
@@ -191,11 +212,33 @@ CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: quar
 
 ## Permissions
 
-Requires Accessibility permission to post CGEvents:
-- System Settings → Privacy & Security → Accessibility
-- Add WakeyWakey, enable, relaunch
+### Accessibility
+Requires Accessibility permission to post CGEvents. On first launch, the app automatically opens System Settings using `AXIsProcessTrustedWithOptions(kAXTrustedCheckOptionPrompt: true)`.
 
-Check with: `AXIsProcessTrusted()`
+```swift
+private func requestAccessibilityPermissionIfNeeded() {
+    if !AXIsProcessTrusted() {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(options)
+    }
+}
+```
+
+### Launch at Login
+Uses SMAppService (macOS 13+) for login item management:
+
+```swift
+import ServiceManagement
+
+// Check status
+SMAppService.mainApp.status == .enabled
+
+// Toggle
+try SMAppService.mainApp.register()   // Enable
+try SMAppService.mainApp.unregister() // Disable
+```
+
+State is managed by the system and visible in System Settings → General → Login Items.
 
 ## Testing Checklist
 
@@ -203,6 +246,9 @@ Check with: `AXIsProcessTrusted()`
 - [ ] Clicking icon shows menu
 - [ ] Enable/Disable toggle works
 - [ ] Icon changes (cup.and.saucer ↔ cup.and.saucer.fill)
+- [ ] Timer options (1h/4h/8h) enable and auto-disable
+- [ ] Launch at Login toggle works (verify in System Settings → Login Items)
+- [ ] Fresh install auto-opens Accessibility settings
 - [ ] Jiggle only happens after 42s idle
 - [ ] No jiggle while typing
 - [ ] Multi-monitor: cursor stays on current display
