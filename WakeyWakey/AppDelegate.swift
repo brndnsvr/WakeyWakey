@@ -17,6 +17,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // Idle/activity scheduling
     private var checkTimer: Timer?
     private var nextActivityDueAt: Date?
+    private var timerExpiresAt: Date?  // For timed enable sessions
     private let idleThreshold: TimeInterval = 42
     private let minInterval: TimeInterval = 42
     private let maxInterval: TimeInterval = 79
@@ -45,6 +46,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         toggleItem.target = self
         menu.addItem(toggleItem)
         menu.addItem(NSMenuItem.separator())
+
+        // Timer options
+        let timer1h = NSMenuItem(title: "Enable for 1 hour", action: #selector(enableFor1Hour), keyEquivalent: "")
+        timer1h.target = self
+        menu.addItem(timer1h)
+
+        let timer4h = NSMenuItem(title: "Enable for 4 hours", action: #selector(enableFor4Hours), keyEquivalent: "")
+        timer4h.target = self
+        menu.addItem(timer4h)
+
+        let timer8h = NSMenuItem(title: "Enable for 8 hours", action: #selector(enableFor8Hours), keyEquivalent: "")
+        timer8h.target = self
+        menu.addItem(timer8h)
+
+        menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         statusItem.menu = menu
 
@@ -70,12 +86,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func toggleEnabled() {
+        timerExpiresAt = nil  // Clear any active timer on manual toggle
         isEnabled.toggle()
         if isEnabled {
             beginPreventingSleep()
         } else {
             endPreventingSleep()
             nextActivityDueAt = nil
+        }
+    }
+
+    // MARK: - Timer-based enable
+
+    @objc private func enableFor1Hour() { enableForDuration(3600) }
+    @objc private func enableFor4Hours() { enableForDuration(14400) }
+    @objc private func enableFor8Hours() { enableForDuration(28800) }
+
+    private func enableForDuration(_ seconds: TimeInterval) {
+        timerExpiresAt = Date().addingTimeInterval(seconds)
+        if !isEnabled {
+            isEnabled = true
+            beginPreventingSleep()
         }
     }
 
@@ -108,6 +139,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func tick() {
+        // Check if timer expired
+        if let expiresAt = timerExpiresAt, Date() >= expiresAt {
+            timerExpiresAt = nil
+            if isEnabled {
+                isEnabled = false
+                endPreventingSleep()
+                nextActivityDueAt = nil
+            }
+            return
+        }
+
         guard isEnabled else { return }
 
         // Check if Universal Control might be active by detecting cursor position changes
