@@ -2,10 +2,12 @@ import Cocoa
 import IOKit
 import IOKit.pwr_mgt
 import ApplicationServices
+import ServiceManagement
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var toggleItem: NSMenuItem!
+    private var launchAtLoginItem: NSMenuItem!
 
     private var isEnabled = false {
         didSet { updateUIForState() }
@@ -61,17 +63,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(timer8h)
 
         menu.addItem(NSMenuItem.separator())
+
+        // Launch at Login toggle
+        launchAtLoginItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        launchAtLoginItem.target = self
+        menu.addItem(launchAtLoginItem)
+        updateLaunchAtLoginUI()
+
+        menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         statusItem.menu = menu
 
         // Accessibility permission check (for posting CGEvents)
-        if !AXIsProcessTrusted() {
-            let alert = NSAlert()
-            alert.messageText = "Accessibility Permission Required"
-            alert.informativeText = "WakeyWakey needs Accessibility permission to post input events. Go to System Settings → Privacy & Security → Accessibility and add WakeyWakey. Restart the app after granting."
-            alert.addButton(withTitle: "OK")
-            alert.runModal()
-        }
+        // Uses AXIsProcessTrustedWithOptions to auto-open System Settings if needed
+        requestAccessibilityPermissionIfNeeded()
 
         // Start 1s heartbeat to detect idle and schedule actions when enabled
         checkTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
@@ -118,6 +123,41 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             image?.isTemplate = true
             button.image = image
         }
+    }
+
+    // MARK: - Accessibility Permission
+
+    private func requestAccessibilityPermissionIfNeeded() {
+        if !AXIsProcessTrusted() {
+            // Prompt user by opening System Settings → Accessibility automatically
+            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+            _ = AXIsProcessTrustedWithOptions(options)
+        }
+    }
+
+    // MARK: - Launch at Login
+
+    @objc private func toggleLaunchAtLogin() {
+        let isCurrentlyEnabled = SMAppService.mainApp.status == .enabled
+        do {
+            if isCurrentlyEnabled {
+                try SMAppService.mainApp.unregister()
+            } else {
+                try SMAppService.mainApp.register()
+            }
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = "Launch at Login Error"
+            alert.informativeText = "Could not \(isCurrentlyEnabled ? "disable" : "enable") launch at login: \(error.localizedDescription)"
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+        }
+        updateLaunchAtLoginUI()
+    }
+
+    private func updateLaunchAtLoginUI() {
+        let isEnabled = SMAppService.mainApp.status == .enabled
+        launchAtLoginItem.state = isEnabled ? .on : .off
     }
 
     private func beginPreventingSleep() {
