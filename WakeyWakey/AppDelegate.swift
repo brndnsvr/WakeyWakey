@@ -139,6 +139,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func toggleLaunchAtLogin() {
         let isCurrentlyEnabled = SMAppService.mainApp.status == .enabled
+        let operation = isCurrentlyEnabled ? "disable" : "enable"
         do {
             if isCurrentlyEnabled {
                 try SMAppService.mainApp.unregister()
@@ -148,7 +149,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             let alert = NSAlert()
             alert.messageText = "Launch at Login Error"
-            alert.informativeText = "Could not \(isCurrentlyEnabled ? "disable" : "enable") launch at login: \(error.localizedDescription)"
+            alert.informativeText = "Could not \(operation) launch at login: \(error.localizedDescription)"
             alert.addButton(withTitle: "OK")
             alert.runModal()
         }

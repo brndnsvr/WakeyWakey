@@ -27,6 +27,6 @@
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
 	<key>NSAccessibilityUsageDescription</key>
-	<string>WakeyWakey needs accessibility permission to move your mouse and prevent idle sleep.</string>
+	<string>WakeyWakey needs accessibility permission to simulate mouse movement when you're idle.</string>
 </dict>
 </plist>
