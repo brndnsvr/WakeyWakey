@@ -54,6 +54,10 @@ WakeyWakey/
 # Install dependencies
 brew install xcodegen
 
+# Set your Apple Developer Team ID (required for code signing)
+export WAKEY_TEAM_ID="YOUR_TEAM_ID"
+# Add to ~/.zshrc or ~/.bashrc to persist
+
 # Generate Xcode project
 ./scripts/generate_project.sh
 
@@ -112,8 +116,11 @@ cp -R build/Build/Products/Release/WakeyWakey.app /Applications/
 | Deployment Target | macOS 15.0 | project.yml |
 | Architecture | arm64 only | project.yml, scripts |
 | Code Signing | Automatic | project.yml |
+| Team ID | `$WAKEY_TEAM_ID` env var | project.yml |
 
-To change team or signing: edit `project.yml` and run `./scripts/generate_project.sh`.
+To find your Team ID: Open Xcode → Settings → Accounts → Select your team → View team ID.
+
+After changing config, regenerate with `./scripts/generate_project.sh`.
 
 ## How It Works
 
