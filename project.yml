@@ -11,7 +11,8 @@ settings:
     DEVELOPMENT_TEAM: ${WAKEY_TEAM_ID}
     CODE_SIGN_IDENTITY: Apple Development
     ENABLE_HARDENED_RUNTIME: YES
-    # Debug-only arch restriction will be set in configurations below
+    DEAD_CODE_STRIPPING: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
 configs:
   Debug: debug
   Release: release
