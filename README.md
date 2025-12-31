@@ -12,7 +12,7 @@ brew install --cask brndnsvr/tap/wakeywakey
 
 ### Manual Download
 
-**[Download WakeyWakey v1.0.0](https://github.com/brndnsvr/WakeyWakey/releases/download/v1.0.0/WakeyWakey-1.0.0.dmg)** (macOS 15.0+, Apple Silicon)
+**[Download WakeyWakey v1.0.1](https://github.com/brndnsvr/WakeyWakey/releases/download/v1.0.1/WakeyWakey-1.0.1.dmg)** (macOS 15.0+, Apple Silicon)
 
 Or visit [Releases](https://github.com/brndnsvr/WakeyWakey/releases) for all versions.
 
@@ -24,8 +24,6 @@ Or visit [Releases](https://github.com/brndnsvr/WakeyWakey/releases) for all ver
 1. Launch WakeyWakey from Applications
 2. Grant Accessibility permission when prompted (required for mouse movement)
 3. Click the coffee cup icon in your menu bar to enable
-
-> **Note:** First launch may show a Gatekeeper warning. Control-click the app and choose "Open" to bypass.
 
 ## Features
 
@@ -64,7 +62,6 @@ If it doesn't work:
 ## Troubleshooting
 
 - **App doesn't jiggle** — Wait 45+ seconds without touching mouse/keyboard
-- **Gatekeeper warning** — Control-click → Open
 - **No menu bar icon** — Make sure you're running from /Applications
 
 ## Development
