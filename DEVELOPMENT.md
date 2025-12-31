@@ -108,6 +108,26 @@ This will:
 cp -R build/Build/Products/Release/WakeyWakey.app /Applications/
 ```
 
+### Update Homebrew Tap
+
+After publishing a new GitHub release, update the Homebrew cask:
+
+1. Get the SHA256 of the new DMG:
+   ```bash
+   shasum -a 256 dist/WakeyWakey-X.Y.Z.dmg
+   ```
+
+2. Edit `~/code/homebrew-tap/Casks/wakeywakey.rb`:
+   - Update `version "X.Y.Z"`
+   - Update `sha256 "..."`
+   - Update the URL if the filename pattern changed
+
+3. Commit and push:
+   ```bash
+   cd ~/code/homebrew-tap
+   git add -A && git commit -m "Update wakeywakey to vX.Y.Z" && git push
+   ```
+
 ## Configuration
 
 | Setting | Value | Location |

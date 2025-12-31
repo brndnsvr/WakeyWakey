@@ -2,19 +2,28 @@
 
 A tiny macOS menu bar app that keeps your Mac awake by simulating subtle mouse movements only when you're idle.
 
-## Download
+## Install
+
+### Homebrew (recommended)
+
+```bash
+brew install --cask brndnsvr/tap/wakeywakey
+```
+
+### Manual Download
 
 **[Download WakeyWakey v1.0.0](https://github.com/brndnsvr/WakeyWakey/releases/download/v1.0.0/WakeyWakey-1.0.0.dmg)** (macOS 15.0+, Apple Silicon)
 
 Or visit [Releases](https://github.com/brndnsvr/WakeyWakey/releases) for all versions.
 
-## Installation
-
 1. Download the DMG above
 2. Open it and drag WakeyWakey to Applications
-3. Launch WakeyWakey from Applications
-4. Grant Accessibility permission when prompted (required for mouse movement)
-5. Click the coffee cup icon in your menu bar to enable
+
+## Getting Started
+
+1. Launch WakeyWakey from Applications
+2. Grant Accessibility permission when prompted (required for mouse movement)
+3. Click the coffee cup icon in your menu bar to enable
 
 > **Note:** First launch may show a Gatekeeper warning. Control-click the app and choose "Open" to bypass.
 
