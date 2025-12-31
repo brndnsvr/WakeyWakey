@@ -92,7 +92,19 @@ echo ""
 echo "==> DMG created: $DMG_PATH"
 ls -lh "$DMG_PATH"
 
-# Step 4: Publish to GitHub (optional)
+# Step 4: Notarize the DMG
+echo ""
+echo "==> Notarizing DMG (this may take a few minutes)..."
+xcrun notarytool submit "$DMG_PATH" \
+    --keychain-profile "WakeyWakey-Notarize" \
+    --wait
+
+echo "==> Stapling notarization ticket..."
+xcrun stapler staple "$DMG_PATH"
+
+echo "==> Notarization complete!"
+
+# Step 5: Publish to GitHub (optional)
 if [[ "$PUBLISH" == "true" ]]; then
     echo ""
     echo "==> Publishing to GitHub..."
