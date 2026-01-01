@@ -117,14 +117,14 @@ After publishing a new GitHub release, update the Homebrew cask:
    shasum -a 256 dist/WakeyWakey-X.Y.Z.dmg
    ```
 
-2. Edit `~/code/homebrew-tap/Casks/wakeywakey.rb`:
+2. Edit `~/code/z_tools/homebrew-tap/Casks/wakeywakey.rb`:
    - Update `version "X.Y.Z"`
    - Update `sha256 "..."`
    - Update the URL if the filename pattern changed
 
 3. Commit and push:
    ```bash
-   cd ~/code/homebrew-tap
+   cd ~/code/z_tools/homebrew-tap
    git add -A && git commit -m "Update wakeywakey to vX.Y.Z" && git push
    ```
 

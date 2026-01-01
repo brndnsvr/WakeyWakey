@@ -163,8 +163,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func beginPreventingSleep() {
         if powerAssertion == 0 {
+            // Use PreventUserIdleDisplaySleep to prevent both screensaver and display sleep
+            // (NoIdleSleep only prevents system sleep, not screensaver)
             IOPMAssertionCreateWithName(
-                kIOPMAssertionTypeNoIdleSleep as CFString,
+                kIOPMAssertionTypePreventUserIdleDisplaySleep as CFString,
                 IOPMAssertionLevel(kIOPMAssertionLevelOn),
                 "WakeyWakey Active" as CFString,
                 &powerAssertion
