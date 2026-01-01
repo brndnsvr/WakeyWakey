@@ -12,7 +12,7 @@ brew install --cask brndnsvr/tap/wakeywakey
 
 ### Manual Download
 
-**[Download WakeyWakey v1.0.1](https://github.com/brndnsvr/WakeyWakey/releases/download/v1.0.1/WakeyWakey-1.0.1.dmg)** (macOS 15.0+, Apple Silicon)
+**[Download WakeyWakey v1.0.2](https://github.com/brndnsvr/WakeyWakey/releases/download/v1.0.2/WakeyWakey-1.0.2.dmg)** (macOS 15.0+, Apple Silicon)
 
 Or visit [Releases](https://github.com/brndnsvr/WakeyWakey/releases) for all versions.
 
