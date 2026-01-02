@@ -2,6 +2,8 @@
 
 A tiny macOS menu bar app that keeps your Mac awake by simulating subtle mouse movements only when you're idle.
 
+**Website:** [wakeywakey.app](https://wakeywakey.app)
+
 ## Install
 
 ### Homebrew (recommended)

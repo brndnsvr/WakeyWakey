@@ -79,3 +79,7 @@ iOSInjectionProject/
 
 # macOS specific
 .DS_Store
+
+# Website (hosted separately)
+website/*
+website-docs/*
