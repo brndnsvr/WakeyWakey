@@ -54,11 +54,23 @@ final class Settings: ObservableObject {
     }
 
     @Published var jiggleIntervalMin: TimeInterval {
-        didSet { defaults.set(jiggleIntervalMin, forKey: Key.jiggleIntervalMin.rawValue) }
+        didSet {
+            // Ensure max >= min
+            if jiggleIntervalMax < jiggleIntervalMin {
+                jiggleIntervalMax = jiggleIntervalMin
+            }
+            defaults.set(jiggleIntervalMin, forKey: Key.jiggleIntervalMin.rawValue)
+        }
     }
 
     @Published var jiggleIntervalMax: TimeInterval {
-        didSet { defaults.set(jiggleIntervalMax, forKey: Key.jiggleIntervalMax.rawValue) }
+        didSet {
+            // Ensure max >= min
+            if jiggleIntervalMax < jiggleIntervalMin {
+                jiggleIntervalMax = jiggleIntervalMin
+            }
+            defaults.set(jiggleIntervalMax, forKey: Key.jiggleIntervalMax.rawValue)
+        }
     }
 
     // MARK: - Computed Properties

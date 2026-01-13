@@ -361,47 +361,36 @@ final class SettingsViewController: NSViewController {
         let settings = Settings.shared
 
         settings.idleThreshold = TimeInterval(idleThresholdField.integerValue)
-        idleThresholdStepper.integerValue = idleThresholdField.integerValue
-
         settings.jiggleIntervalMin = TimeInterval(minIntervalField.integerValue)
-        minIntervalStepper.integerValue = minIntervalField.integerValue
-
         settings.jiggleIntervalMax = TimeInterval(maxIntervalField.integerValue)
-        maxIntervalStepper.integerValue = maxIntervalField.integerValue
 
-        // Ensure min <= max
-        if settings.jiggleIntervalMin > settings.jiggleIntervalMax {
-            settings.jiggleIntervalMax = settings.jiggleIntervalMin
-            maxIntervalField.integerValue = Int(settings.jiggleIntervalMax)
-            maxIntervalStepper.integerValue = Int(settings.jiggleIntervalMax)
-        }
+        // Sync UI with validated values from Settings
+        syncBehaviorUI()
+    }
+
+    private func syncBehaviorUI() {
+        let settings = Settings.shared
+        idleThresholdField.integerValue = Int(settings.idleThreshold)
+        idleThresholdStepper.integerValue = Int(settings.idleThreshold)
+        minIntervalField.integerValue = Int(settings.jiggleIntervalMin)
+        minIntervalStepper.integerValue = Int(settings.jiggleIntervalMin)
+        maxIntervalField.integerValue = Int(settings.jiggleIntervalMax)
+        maxIntervalStepper.integerValue = Int(settings.jiggleIntervalMax)
     }
 
     @objc private func idleStepperChanged(_ sender: NSStepper) {
-        idleThresholdField.integerValue = sender.integerValue
         Settings.shared.idleThreshold = TimeInterval(sender.integerValue)
+        syncBehaviorUI()
     }
 
     @objc private func minIntervalStepperChanged(_ sender: NSStepper) {
-        minIntervalField.integerValue = sender.integerValue
         Settings.shared.jiggleIntervalMin = TimeInterval(sender.integerValue)
-        // Ensure max >= min
-        if sender.integerValue > maxIntervalStepper.integerValue {
-            maxIntervalField.integerValue = sender.integerValue
-            maxIntervalStepper.integerValue = sender.integerValue
-            Settings.shared.jiggleIntervalMax = TimeInterval(sender.integerValue)
-        }
+        syncBehaviorUI()
     }
 
     @objc private func maxIntervalStepperChanged(_ sender: NSStepper) {
-        maxIntervalField.integerValue = sender.integerValue
         Settings.shared.jiggleIntervalMax = TimeInterval(sender.integerValue)
-        // Ensure min <= max
-        if sender.integerValue < minIntervalStepper.integerValue {
-            minIntervalField.integerValue = sender.integerValue
-            minIntervalStepper.integerValue = sender.integerValue
-            Settings.shared.jiggleIntervalMin = TimeInterval(sender.integerValue)
-        }
+        syncBehaviorUI()
     }
 
     @objc private func restoreDefaults(_ sender: NSButton) {

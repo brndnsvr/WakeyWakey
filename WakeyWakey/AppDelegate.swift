@@ -21,6 +21,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Power management assertion to prevent idle sleep
     private var powerAssertion: IOPMAssertionID = 0
+    private var powerAssertionFailed = false
+    private var warningItem: NSMenuItem?
 
     // Idle/activity scheduling
     private var checkTimer: Timer?
@@ -36,6 +38,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Animation state
     private var isAnimating = false
+    private var animationWorkItems: [DispatchWorkItem] = []
 
     // Animation and detection configuration
     private struct AnimationConfig {
@@ -165,9 +168,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func showSettings() {
-        if settingsWindowController == nil {
-            settingsWindowController = SettingsWindowController()
-        }
+        // Create fresh instance each time to avoid memory leak
+        settingsWindowController = SettingsWindowController()
         settingsWindowController?.showWindow()
     }
 
@@ -265,7 +267,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if result != kIOReturnSuccess {
                 print("WakeyWakey: Failed to create power assertion (error: \(result))")
                 powerAssertion = 0
+                powerAssertionFailed = true
+            } else {
+                powerAssertionFailed = false
             }
+            updateWarningMenuItem()
         }
     }
 
@@ -273,6 +279,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if powerAssertion != 0 {
             IOPMAssertionRelease(powerAssertion)
             powerAssertion = 0
+        }
+        powerAssertionFailed = false
+        updateWarningMenuItem()
+    }
+
+    private func updateWarningMenuItem() {
+        guard let menu = statusItem.menu else { return }
+
+        if powerAssertionFailed && isEnabled {
+            // Add warning if not present
+            if warningItem == nil {
+                let item = NSMenuItem(title: "⚠️ Unable to prevent sleep", action: nil, keyEquivalent: "")
+                item.isEnabled = false
+                // Insert after toggle item (index 1, since toggle is at 0)
+                menu.insertItem(item, at: 1)
+                warningItem = item
+            }
+        } else {
+            // Remove warning if present
+            if let item = warningItem {
+                menu.removeItem(item)
+                warningItem = nil
+            }
         }
     }
 
@@ -296,7 +325,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if hasMouseMovedSinceLastCheck(currentPos: currentMousePos) {
             // Mouse has moved, consider user active even if no HID events
             // Cancel any in-progress animation
-            if isAnimating { isAnimating = false }
+            if isAnimating { cancelAnimation() }
             nextActivityDueAt = nil
             return
         }
@@ -316,7 +345,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if idle < settings.idleThreshold {
             // User has been active recently; reset schedule so we fire immediately after next threshold
             // Cancel any in-progress animation
-            if isAnimating { isAnimating = false }
+            if isAnimating { cancelAnimation() }
             nextActivityDueAt = nil
             return
         }
@@ -407,12 +436,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Get screen info
         let screens = NSScreen.screens
-        guard !screens.isEmpty else {
+        guard let mainScreen = screens.first(where: { $0.frame.origin == .zero }) ?? NSScreen.main ?? screens.first else {
             isAnimating = false
             return
         }
-
-        let mainScreen = screens.first(where: { $0.frame.origin == .zero }) ?? NSScreen.main ?? screens.first!
         let mainTopY = mainScreen.frame.maxY
 
         // Convert to Cocoa for screen detection
@@ -613,11 +640,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func cancelAnimation() {
+        animationWorkItems.forEach { $0.cancel() }
+        animationWorkItems.removeAll()
+        isAnimating = false
+    }
+
     private func executeAnimationSequence(waypoints: [CGPoint], delays: [TimeInterval]) {
         guard !waypoints.isEmpty else {
             isAnimating = false
             return
         }
+
+        // Cancel any existing animation work items
+        animationWorkItems.forEach { $0.cancel() }
+        animationWorkItems.removeAll()
 
         var cumulativeDelay: TimeInterval = 0
 
@@ -625,12 +662,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let delay = index < delays.count ? delays[index] : 0.1
             cumulativeDelay += delay
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + cumulativeDelay) { [weak self] in
+            let workItem = DispatchWorkItem { [weak self] in
                 guard let self = self else { return }
 
                 // Check if we should abort (e.g., user became active or disabled)
                 guard self.isAnimating && self.isEnabled else {
-                    self.isAnimating = false
+                    self.cancelAnimation()
                     return
                 }
 
@@ -641,9 +678,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
                 // Mark animation complete after last waypoint
                 if index == waypoints.count - 1 {
+                    self.animationWorkItems.removeAll()
                     self.isAnimating = false
                 }
             }
+
+            animationWorkItems.append(workItem)
+            DispatchQueue.main.asyncAfter(deadline: .now() + cumulativeDelay, execute: workItem)
         }
     }
 
@@ -661,9 +702,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func performActivityWithCocoaPoint(_ cocoaPoint: CGPoint) {
         // Fallback method using original logic
         let screens = NSScreen.screens
-        guard !screens.isEmpty else { return }
-
-        let mainScreen = screens.first(where: { $0.frame.origin == .zero }) ?? NSScreen.main ?? screens.first!
+        guard let mainScreen = screens.first(where: { $0.frame.origin == .zero }) ?? NSScreen.main ?? screens.first else {
+            return
+        }
         let mainTopY = mainScreen.frame.maxY
         let currentScreen = screens.first(where: { $0.frame.contains(cocoaPoint) }) ?? mainScreen
 
