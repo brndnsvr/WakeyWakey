@@ -3,11 +3,17 @@ import IOKit
 import IOKit.pwr_mgt
 import ApplicationServices
 import ServiceManagement
+import Combine
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var toggleItem: NSMenuItem!
     private var launchAtLoginItem: NSMenuItem!
+
+    // Timer menu items (for dynamic title updates)
+    private var timer1Item: NSMenuItem!
+    private var timer2Item: NSMenuItem!
+    private var timer3Item: NSMenuItem!
 
     private var isEnabled = false {
         didSet { updateUIForState() }
@@ -20,9 +26,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var checkTimer: Timer?
     private var nextActivityDueAt: Date?
     private var timerExpiresAt: Date?  // For timed enable sessions
-    private let idleThreshold: TimeInterval = 42
-    private let minInterval: TimeInterval = 42
-    private let maxInterval: TimeInterval = 79
+
+    // Settings reference and Combine subscriptions
+    private let settings = Settings.shared
+    private var cancellables = Set<AnyCancellable>()
+
+    // Settings window
+    private var settingsWindowController: SettingsWindowController?
+
+    // Animation state
+    private var isAnimating = false
+
+    // Animation and detection configuration
+    private struct AnimationConfig {
+        static let minDuration: TimeInterval = 0.5
+        static let maxDuration: TimeInterval = 1.0
+        static let minSteps: Int = 4
+        static let maxSteps: Int = 8
+        static let minTotalDistance: CGFloat = 15
+        static let maxTotalDistance: CGFloat = 35
+        static let maxDeviationDegrees: CGFloat = 22
+        static let centerBiasProbability: Int = 52
+
+        // Mouse movement detection thresholds
+        static let mouseMovementThreshold: CGFloat = 0.5    // Pixels to consider "moved"
+        static let recentMovementWindow: TimeInterval = 2.0 // Seconds to track continuous movement
+    }
+
+    private enum PathType {
+        case arc
+        case zigzag
+        case direct
+    }
+
+    private enum TimingPattern {
+        case accelerateDecelerate
+        case steady
+        case quickPauseQuick
+    }
 
     override init() {
         super.init()
@@ -49,18 +90,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(toggleItem)
         menu.addItem(NSMenuItem.separator())
 
-        // Timer options
-        let timer1h = NSMenuItem(title: "Enable for 1 hour", action: #selector(enableFor1Hour), keyEquivalent: "")
-        timer1h.target = self
-        menu.addItem(timer1h)
+        // Timer options (titles update dynamically from settings)
+        timer1Item = NSMenuItem(title: "Enable for \(settings.formatDuration(settings.timerDuration1))", action: #selector(enableForTimer1), keyEquivalent: "")
+        timer1Item.target = self
+        menu.addItem(timer1Item)
 
-        let timer4h = NSMenuItem(title: "Enable for 4 hours", action: #selector(enableFor4Hours), keyEquivalent: "")
-        timer4h.target = self
-        menu.addItem(timer4h)
+        timer2Item = NSMenuItem(title: "Enable for \(settings.formatDuration(settings.timerDuration2))", action: #selector(enableForTimer2), keyEquivalent: "")
+        timer2Item.target = self
+        menu.addItem(timer2Item)
 
-        let timer8h = NSMenuItem(title: "Enable for 8 hours", action: #selector(enableFor8Hours), keyEquivalent: "")
-        timer8h.target = self
-        menu.addItem(timer8h)
+        timer3Item = NSMenuItem(title: "Enable for \(settings.formatDuration(settings.timerDuration3))", action: #selector(enableForTimer3), keyEquivalent: "")
+        timer3Item.target = self
+        menu.addItem(timer3Item)
 
         menu.addItem(NSMenuItem.separator())
 
@@ -69,6 +110,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         launchAtLoginItem.target = self
         menu.addItem(launchAtLoginItem)
         updateLaunchAtLoginUI()
+
+        menu.addItem(NSMenuItem.separator())
+
+        // Settings
+        let settingsItem = NSMenuItem(title: "Settings...", action: #selector(showSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
 
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
@@ -82,6 +130,45 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         checkTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.tick()
         }
+
+        // Observe settings changes to update timer menu titles
+        observeSettingsChanges()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        // Clean up timer
+        checkTimer?.invalidate()
+        checkTimer = nil
+
+        // Release power assertion
+        endPreventingSleep()
+    }
+
+    private func observeSettingsChanges() {
+        Publishers.CombineLatest3(
+            settings.$timerDuration1,
+            settings.$timerDuration2,
+            settings.$timerDuration3
+        )
+        .dropFirst()  // Skip initial values
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] _, _, _ in
+            self?.updateTimerMenuTitles()
+        }
+        .store(in: &cancellables)
+    }
+
+    private func updateTimerMenuTitles() {
+        timer1Item.title = "Enable for \(settings.formatDuration(settings.timerDuration1))"
+        timer2Item.title = "Enable for \(settings.formatDuration(settings.timerDuration2))"
+        timer3Item.title = "Enable for \(settings.formatDuration(settings.timerDuration3))"
+    }
+
+    @objc private func showSettings() {
+        if settingsWindowController == nil {
+            settingsWindowController = SettingsWindowController()
+        }
+        settingsWindowController?.showWindow()
     }
 
     @objc private func statusItemClicked() {
@@ -103,9 +190,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Timer-based enable
 
-    @objc private func enableFor1Hour() { enableForDuration(3600) }
-    @objc private func enableFor4Hours() { enableForDuration(14400) }
-    @objc private func enableFor8Hours() { enableForDuration(28800) }
+    @objc private func enableForTimer1() { enableForDuration(settings.timerDuration1) }
+    @objc private func enableForTimer2() { enableForDuration(settings.timerDuration2) }
+    @objc private func enableForTimer3() { enableForDuration(settings.timerDuration3) }
 
     private func enableForDuration(_ seconds: TimeInterval) {
         timerExpiresAt = Date().addingTimeInterval(seconds)
@@ -129,6 +216,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func requestAccessibilityPermissionIfNeeded() {
         if !AXIsProcessTrusted() {
+            // Log version for debugging permission issues across updates
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+            print("WakeyWakey v\(version): Requesting Accessibility permission")
+
             // Prompt user by opening System Settings → Accessibility automatically
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
             _ = AXIsProcessTrustedWithOptions(options)
@@ -165,12 +256,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if powerAssertion == 0 {
             // Use PreventUserIdleDisplaySleep to prevent both screensaver and display sleep
             // (NoIdleSleep only prevents system sleep, not screensaver)
-            IOPMAssertionCreateWithName(
+            let result = IOPMAssertionCreateWithName(
                 kIOPMAssertionTypePreventUserIdleDisplaySleep as CFString,
                 IOPMAssertionLevel(kIOPMAssertionLevelOn),
                 "WakeyWakey Active" as CFString,
                 &powerAssertion
             )
+            if result != kIOReturnSuccess {
+                print("WakeyWakey: Failed to create power assertion (error: \(result))")
+                powerAssertion = 0
+            }
         }
     }
 
@@ -200,6 +295,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let currentMousePos = NSEvent.mouseLocation
         if hasMouseMovedSinceLastCheck(currentPos: currentMousePos) {
             // Mouse has moved, consider user active even if no HID events
+            // Cancel any in-progress animation
+            if isAnimating { isAnimating = false }
             nextActivityDueAt = nil
             return
         }
@@ -216,8 +313,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .map { CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: $0) }
             .min() ?? 0.0
 
-        if idle < idleThreshold {
+        if idle < settings.idleThreshold {
             // User has been active recently; reset schedule so we fire immediately after next threshold
+            // Cancel any in-progress animation
+            if isAnimating { isAnimating = false }
             nextActivityDueAt = nil
             return
         }
@@ -252,15 +351,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // Check if mouse position has changed
-        let moved = abs(currentPos.x - lastPos.x) > 0.5 || abs(currentPos.y - lastPos.y) > 0.5
+        let threshold = AnimationConfig.mouseMovementThreshold
+        let moved = abs(currentPos.x - lastPos.x) > threshold || abs(currentPos.y - lastPos.y) > threshold
 
         if moved {
             let now = Date()
-            // If mouse moved, check if it's recent movement (within last 2 seconds)
+            // If mouse moved, check if it's recent movement
             // This helps distinguish between our own jiggle movements and actual user movement
             if let lastMoveTime = lastMouseMoveTime {
                 let timeSinceLastMove = now.timeIntervalSince(lastMoveTime)
-                if timeSinceLastMove < 2.0 {
+                if timeSinceLastMove < AnimationConfig.recentMovementWindow {
                     // Recent continuous movement, likely user activity
                     lastMouseMoveTime = now
                     return true
@@ -273,7 +373,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Check if we've been still too long (reset movement tracking after idle period)
         if let lastMoveTime = lastMouseMoveTime {
             let timeSinceLastMove = Date().timeIntervalSince(lastMoveTime)
-            if timeSinceLastMove > idleThreshold {
+            if timeSinceLastMove > settings.idleThreshold {
                 lastMouseMoveTime = nil
             }
         }
@@ -282,11 +382,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func scheduleNextActivity(afterNow now: Date) {
-        let interval = TimeInterval(Int.random(in: Int(minInterval)...Int(maxInterval)))
+        let interval = settings.randomJiggleInterval
         nextActivityDueAt = now.addingTimeInterval(interval)
     }
 
     private func performActivity() {
+        // Prevent overlapping animations
+        guard !isAnimating else { return }
+
         // Get current mouse position directly in Quartz coordinates to avoid conversion issues
         guard let currentQuartzPos = CGEvent(source: nil)?.location else {
             // Fallback: get from NSEvent and convert
@@ -295,64 +398,264 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        // Work directly in Quartz coordinates (origin top-left)
-        let screens = NSScreen.screens
-        guard !screens.isEmpty else { return }
+        // Start animated jiggle
+        performAnimatedJiggle(from: currentQuartzPos)
+    }
 
-        // Find the main screen for coordinate system reference
+    private func performAnimatedJiggle(from startPosition: CGPoint) {
+        isAnimating = true
+
+        // Get screen info
+        let screens = NSScreen.screens
+        guard !screens.isEmpty else {
+            isAnimating = false
+            return
+        }
+
         let mainScreen = screens.first(where: { $0.frame.origin == .zero }) ?? NSScreen.main ?? screens.first!
         let mainTopY = mainScreen.frame.maxY
 
-        // Convert current Quartz position to Cocoa for screen detection
-        let cocoaPoint = CGPoint(x: currentQuartzPos.x, y: mainTopY - currentQuartzPos.y)
-
-        // Find current screen
+        // Convert to Cocoa for screen detection
+        let cocoaPoint = CGPoint(x: startPosition.x, y: mainTopY - startPosition.y)
         let currentScreen = screens.first(where: { $0.frame.contains(cocoaPoint) }) ?? mainScreen
 
-        // Calculate movement
-        let step = CGFloat(Int.random(in: 11...23))
-        let biasToCenter = Int.random(in: 1...100) <= 52
+        // Calculate final target using center bias
+        let finalTarget = calculateFinalTarget(from: startPosition, screen: currentScreen, mainTopY: mainTopY)
+
+        // Generate waypoints
+        let waypoints = generateWaypoints(from: startPosition, to: finalTarget, screen: currentScreen, mainTopY: mainTopY)
+
+        // Generate timing delays
+        let delays = generateStepDelays(count: waypoints.count)
+
+        // Execute animation sequence
+        executeAnimationSequence(waypoints: waypoints, delays: delays)
+    }
+
+    private func calculateFinalTarget(from currentQuartzPos: CGPoint, screen: NSScreen, mainTopY: CGFloat) -> CGPoint {
+        // Calculate total distance for this jiggle
+        let totalDistance = CGFloat.random(in: AnimationConfig.minTotalDistance...AnimationConfig.maxTotalDistance)
+
+        // Apply center bias
+        let biasToCenter = Int.random(in: 1...100) <= AnimationConfig.centerBiasProbability
 
         var targetQuartz = currentQuartzPos
 
         if biasToCenter {
-            // Convert screen center to Quartz coordinates
-            let f = currentScreen.frame
+            // Move toward screen center
+            let f = screen.frame
             let centerCocoa = CGPoint(x: f.midX, y: f.midY)
             let centerQuartz = CGPoint(x: centerCocoa.x, y: mainTopY - centerCocoa.y)
 
             let vx = centerQuartz.x - currentQuartzPos.x
             let vy = centerQuartz.y - currentQuartzPos.y
-            let dist = sqrt(vx*vx + vy*vy)
+            let dist = sqrt(vx * vx + vy * vy)
 
             if dist >= 1.0 {
                 let nx = vx / dist
                 let ny = vy / dist
-                targetQuartz.x += nx * min(step, dist)
-                targetQuartz.y += ny * min(step, dist)
+                targetQuartz.x += nx * min(totalDistance, dist)
+                targetQuartz.y += ny * min(totalDistance, dist)
             } else {
-                // Already at center, small random move
-                targetQuartz.x += (Bool.random() ? 1 : -1) * CGFloat(Int.random(in: 11...23))
-                targetQuartz.y += (Bool.random() ? 1 : -1) * CGFloat(Int.random(in: 11...23))
+                // At center - random direction
+                let angle = CGFloat.random(in: 0...(2 * .pi))
+                targetQuartz.x += cos(angle) * totalDistance
+                targetQuartz.y += sin(angle) * totalDistance
             }
         } else {
-            // Random small move
-            targetQuartz.x += (Bool.random() ? 1 : -1) * CGFloat(Int.random(in: 11...23))
-            targetQuartz.y += (Bool.random() ? 1 : -1) * CGFloat(Int.random(in: 11...23))
+            // Random direction
+            let angle = CGFloat.random(in: 0...(2 * .pi))
+            targetQuartz.x += cos(angle) * totalDistance
+            targetQuartz.y += sin(angle) * totalDistance
         }
 
-        // Clamp to current screen bounds (convert bounds to Quartz)
-        let f = currentScreen.frame
+        // Clamp to screen
+        return clampToScreen(point: targetQuartz, screen: screen, mainTopY: mainTopY)
+    }
+
+    private func generateWaypoints(from start: CGPoint, to end: CGPoint, screen: NSScreen, mainTopY: CGFloat) -> [CGPoint] {
+        let stepCount = Int.random(in: AnimationConfig.minSteps...AnimationConfig.maxSteps)
+        var waypoints: [CGPoint] = []
+
+        // Calculate base direction vector
+        let dx = end.x - start.x
+        let dy = end.y - start.y
+        let totalDist = sqrt(dx * dx + dy * dy)
+
+        guard totalDist > 0 else {
+            return [end]
+        }
+
+        // Unit vector toward target
+        let ux = dx / totalDist
+        let uy = dy / totalDist
+
+        // Perpendicular vector for deviation
+        let px = -uy
+        let py = ux
+
+        // Select path type
+        let pathType = selectPathType()
+
+        for i in 0..<stepCount {
+            let progress = CGFloat(i + 1) / CGFloat(stepCount)
+
+            // Base position along direct path
+            var nextX = start.x + dx * progress
+            var nextY = start.y + dy * progress
+
+            // Apply deviation based on path type
+            let deviation = calculateDeviation(pathType: pathType, stepIndex: i, totalSteps: stepCount)
+
+            // Convert deviation to perpendicular offset
+            let deviationDistance = (totalDist / CGFloat(stepCount)) * tan(deviation * .pi / 180)
+            nextX += px * deviationDistance
+            nextY += py * deviationDistance
+
+            // Add small random variation
+            let variation = CGFloat.random(in: 0.85...1.15)
+            let currentPos = waypoints.last ?? start
+            let adjustedX = currentPos.x + (nextX - currentPos.x) * variation
+            let adjustedY = currentPos.y + (nextY - currentPos.y) * variation
+
+            // Clamp to screen bounds
+            let clamped = clampToScreen(point: CGPoint(x: adjustedX, y: adjustedY), screen: screen, mainTopY: mainTopY)
+            waypoints.append(clamped)
+        }
+
+        // Ensure final waypoint is the target
+        if let last = waypoints.last, last != end {
+            waypoints[waypoints.count - 1] = clampToScreen(point: end, screen: screen, mainTopY: mainTopY)
+        }
+
+        return waypoints
+    }
+
+    private func selectPathType() -> PathType {
+        let roll = Int.random(in: 1...100)
+        if roll <= 40 { return .arc }
+        if roll <= 75 { return .zigzag }
+        return .direct
+    }
+
+    private func calculateDeviation(pathType: PathType, stepIndex: Int, totalSteps: Int) -> CGFloat {
+        let maxDeviation = AnimationConfig.maxDeviationDegrees
+
+        switch pathType {
+        case .arc:
+            // Sine-based arc: max deviation at middle
+            let progress = CGFloat(stepIndex) / CGFloat(totalSteps - 1)
+            let arcFactor = sin(progress * .pi)
+            let direction: CGFloat = Bool.random() ? 1 : -1
+            return direction * arcFactor * maxDeviation * CGFloat.random(in: 0.5...1.0)
+
+        case .zigzag:
+            // Alternating deviation
+            let direction: CGFloat = stepIndex % 2 == 0 ? 1 : -1
+            return direction * CGFloat.random(in: maxDeviation * 0.3...maxDeviation * 0.8)
+
+        case .direct:
+            // Small random wobble
+            return CGFloat.random(in: -maxDeviation * 0.2...maxDeviation * 0.2)
+        }
+    }
+
+    private func generateStepDelays(count: Int) -> [TimeInterval] {
+        let totalDuration = TimeInterval.random(in: AnimationConfig.minDuration...AnimationConfig.maxDuration)
+
+        // Select timing pattern
+        let pattern = selectTimingPattern()
+
+        var delays: [TimeInterval] = []
+        let baseDelay = totalDuration / Double(count)
+
+        for i in 0..<count {
+            let progress = Double(i) / Double(max(1, count - 1))
+            let multiplier = calculateTimingMultiplier(pattern: pattern, progress: progress)
+            let delay = baseDelay * multiplier
+
+            // Add small random variation (10-20%)
+            let variation = Double.random(in: 0.9...1.1)
+            delays.append(max(0.04, delay * variation))  // Minimum 40ms
+        }
+
+        // Normalize to match total duration
+        let actualTotal = delays.reduce(0, +)
+        if actualTotal > 0 {
+            let scale = totalDuration / actualTotal
+            delays = delays.map { $0 * scale }
+        }
+
+        return delays
+    }
+
+    private func selectTimingPattern() -> TimingPattern {
+        let roll = Int.random(in: 1...100)
+        if roll <= 50 { return .accelerateDecelerate }
+        if roll <= 80 { return .steady }
+        return .quickPauseQuick
+    }
+
+    private func calculateTimingMultiplier(pattern: TimingPattern, progress: Double) -> Double {
+        switch pattern {
+        case .accelerateDecelerate:
+            // Slow at start and end, fast in middle
+            let sineFactor = sin(progress * .pi)
+            return sineFactor > 0.1 ? 1.0 / sineFactor : 2.0
+
+        case .steady:
+            return 1.0
+
+        case .quickPauseQuick:
+            // Fast at start, slow in middle, fast at end
+            let midDistance = abs(progress - 0.5) * 2
+            return 0.5 + (1 - midDistance) * 1.5
+        }
+    }
+
+    private func executeAnimationSequence(waypoints: [CGPoint], delays: [TimeInterval]) {
+        guard !waypoints.isEmpty else {
+            isAnimating = false
+            return
+        }
+
+        var cumulativeDelay: TimeInterval = 0
+
+        for (index, waypoint) in waypoints.enumerated() {
+            let delay = index < delays.count ? delays[index] : 0.1
+            cumulativeDelay += delay
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + cumulativeDelay) { [weak self] in
+                guard let self = self else { return }
+
+                // Check if we should abort (e.g., user became active or disabled)
+                guard self.isAnimating && self.isEnabled else {
+                    self.isAnimating = false
+                    return
+                }
+
+                // Post the mouse move event
+                if let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: waypoint, mouseButton: .left) {
+                    move.post(tap: .cghidEventTap)
+                }
+
+                // Mark animation complete after last waypoint
+                if index == waypoints.count - 1 {
+                    self.isAnimating = false
+                }
+            }
+        }
+    }
+
+    private func clampToScreen(point: CGPoint, screen: NSScreen, mainTopY: CGFloat) -> CGPoint {
+        let f = screen.frame
         let minQuartzY = mainTopY - f.maxY
         let maxQuartzY = mainTopY - f.minY
 
-        targetQuartz.x = max(f.minX, min(targetQuartz.x, f.maxX - 1))
-        targetQuartz.y = max(minQuartzY, min(targetQuartz.y, maxQuartzY - 1))
-
-        // Post the mouse move event
-        if let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: targetQuartz, mouseButton: .left) {
-            move.post(tap: .cghidEventTap)
-        }
+        return CGPoint(
+            x: max(f.minX, min(point.x, f.maxX - 1)),
+            y: max(minQuartzY, min(point.y, maxQuartzY - 1))
+        )
     }
 
     private func performActivityWithCocoaPoint(_ cocoaPoint: CGPoint) {

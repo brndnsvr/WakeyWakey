@@ -53,7 +53,7 @@ echo ""
 # Step 1: Build
 if [[ "$SKIP_BUILD" != "true" ]]; then
     echo "==> Building release..."
-    ./scripts/build_release.sh
+    ./scripts/build.sh
 else
     echo "==> Skipping build (SKIP_BUILD=true)"
 fi

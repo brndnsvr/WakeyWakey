@@ -7,8 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0BFF4CA7B69D53DED6753E50 /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B4F5BF8E95151F467D3712E /* SettingsWindowController.swift */; };
 		0D02628B0E56F42A4CC5449D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D64C68669D51B0771B3ED7 /* AppDelegate.swift */; };
 		191FEA10E3AF0174315F9E1F /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 828A4A94A98F0E83E2A32AFB /* IOKit.framework */; };
+		2635E293BA42012B491F197F /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BB805F4F5CADB7C94717775 /* Settings.swift */; };
+		613BBE897A7DC5A945348914 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 342CAC1F8F8BFCF03E6A343A /* SettingsViewController.swift */; };
 		9D2385C1AD92535ECD95B9FC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B3EA11476323F08F82D96245 /* Assets.xcassets */; };
 		D9B953CBC87564BC63EFCD1A /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A806F8615883C35702E707 /* main.swift */; };
 		EFF215E219197DF78BC4DA3F /* ApplicationServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7D7704D5D0B9840EFE97894D /* ApplicationServices.framework */; };
@@ -16,6 +19,9 @@
 
 /* Begin PBXFileReference section */
 		22A54044F37C4357AE4210DB /* WakeyWakey.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WakeyWakey.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		342CAC1F8F8BFCF03E6A343A /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
+		6B4F5BF8E95151F467D3712E /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
+		6BB805F4F5CADB7C94717775 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		7D7704D5D0B9840EFE97894D /* ApplicationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ApplicationServices.framework; path = System/Library/Frameworks/ApplicationServices.framework; sourceTree = SDKROOT; };
 		828A4A94A98F0E83E2A32AFB /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		B3EA11476323F08F82D96245 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -45,6 +51,15 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		17C2F78F9D1E1D76AAED9ACD /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				342CAC1F8F8BFCF03E6A343A /* SettingsViewController.swift */,
+				6B4F5BF8E95151F467D3712E /* SettingsWindowController.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
 		1B1F31D5E9A795732F1A81D9 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -68,7 +83,9 @@
 				C0D64C68669D51B0771B3ED7 /* AppDelegate.swift */,
 				B3EA11476323F08F82D96245 /* Assets.xcassets */,
 				C5A806F8615883C35702E707 /* main.swift */,
+				6BB805F4F5CADB7C94717775 /* Settings.swift */,
 				441BF4DD847F371007DC75A0 /* Resources */,
+				17C2F78F9D1E1D76AAED9ACD /* Settings */,
 			);
 			path = WakeyWakey;
 			sourceTree = "<group>";
@@ -114,7 +131,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					959893DAA5428FA6C8DAA3F9 = {
-						DevelopmentTeam = "${WAKEY_TEAM_ID}";
+						DevelopmentTeam = CMFBMNG959;
 					};
 				};
 			};
@@ -154,6 +171,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				0D02628B0E56F42A4CC5449D /* AppDelegate.swift in Sources */,
+				2635E293BA42012B491F197F /* Settings.swift in Sources */,
+				613BBE897A7DC5A945348914 /* SettingsViewController.swift in Sources */,
+				0BFF4CA7B69D53DED6753E50 /* SettingsWindowController.swift in Sources */,
 				D9B953CBC87564BC63EFCD1A /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -238,7 +258,7 @@
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "${WAKEY_TEAM_ID}";
+				DEVELOPMENT_TEAM = CMFBMNG959;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -300,7 +320,7 @@
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "${WAKEY_TEAM_ID}";
+				DEVELOPMENT_TEAM = CMFBMNG959;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
