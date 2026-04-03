@@ -53,8 +53,10 @@ Click the menu bar icon (coffee cup) to access:
 | Quit | Exit the app |
 
 **Icon states:**
-- 💤 Empty cup — disabled
-- ☕ Filled cup — enabled
+
+| Disabled | Enabled |
+|:--------:|:-------:|
+| ![Disabled](docs/assets/icon-disabled.png) | ![Enabled](docs/assets/icon-enabled.png) |
 
 ## CLI Usage
 
