@@ -9,3 +9,12 @@ xcodebuild \
   ONLY_ACTIVE_ARCH=YES \
   ARCHS=arm64 \
   -allowProvisioningUpdates
+
+xcodebuild \
+  -project WakeyWakey.xcodeproj \
+  -scheme wakey \
+  -configuration Debug \
+  -derivedDataPath build \
+  ONLY_ACTIVE_ARCH=YES \
+  ARCHS=arm64 \
+  -allowProvisioningUpdates

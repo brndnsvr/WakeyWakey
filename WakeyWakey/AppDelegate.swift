@@ -36,6 +36,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // Settings window
     private var settingsWindowController: SettingsWindowController?
 
+    // CLI IPC server
+    private var cliServer: CLIServer?
+
     // Animation state
     private var isAnimating = false
     private var animationWorkItems: [DispatchWorkItem] = []
@@ -136,12 +139,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Observe settings changes to update timer menu titles
         observeSettingsChanges()
+
+        // Start CLI IPC server
+        cliServer = CLIServer(handler: self)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         // Clean up timer
         checkTimer?.invalidate()
         checkTimer = nil
+
+        // Stop CLI server
+        cliServer?.stop()
+        cliServer = nil
 
         // Release power assertion
         endPreventingSleep()
@@ -724,6 +734,69 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         if let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: newQuartz, mouseButton: .left) {
             move.post(tap: .cghidEventTap)
+        }
+    }
+}
+
+// MARK: - CLI Command Handler
+
+extension AppDelegate: CLICommandHandler {
+
+    func cliEnable(duration: TimeInterval?) -> CLIServer.Response {
+        if let duration = duration {
+            enableForDuration(duration)
+            return CLIServer.Response(ok: true, message: "Enabled for \(settings.formatDuration(duration))")
+        } else {
+            timerExpiresAt = nil
+            if !isEnabled {
+                isEnabled = true
+                beginPreventingSleep()
+            }
+            return CLIServer.Response(ok: true, message: "Enabled")
+        }
+    }
+
+    func cliDisable() -> CLIServer.Response {
+        timerExpiresAt = nil
+        if isEnabled {
+            isEnabled = false
+            endPreventingSleep()
+            nextActivityDueAt = nil
+        }
+        return CLIServer.Response(ok: true, message: "Disabled")
+    }
+
+    func cliStatus() -> CLIServer.Response {
+        var parts: [String] = []
+
+        if isEnabled {
+            parts.append("Status: enabled")
+            if let expiresAt = timerExpiresAt {
+                let remaining = expiresAt.timeIntervalSinceNow
+                if remaining > 0 {
+                    parts.append("Timer: \(formatRemaining(remaining)) remaining")
+                } else {
+                    parts.append("Timer: expiring")
+                }
+            } else {
+                parts.append("Timer: indefinite")
+            }
+        } else {
+            parts.append("Status: disabled")
+        }
+
+        return CLIServer.Response(ok: true, message: parts.joined(separator: "\n"))
+    }
+
+    private func formatRemaining(_ seconds: TimeInterval) -> String {
+        let h = Int(seconds) / 3600
+        let m = (Int(seconds) % 3600) / 60
+        if h > 0 && m > 0 {
+            return "\(h)h \(m)m"
+        } else if h > 0 {
+            return "\(h)h"
+        } else {
+            return "\(m)m"
         }
     }
 }

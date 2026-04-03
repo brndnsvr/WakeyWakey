@@ -10,6 +10,7 @@ cd "$PROJECT_DIR"
 
 APP_NAME="WakeyWakey"
 APP_PATH="build/Build/Products/Release/${APP_NAME}.app"
+CLI_PATH="build/Build/Products/Release/wakey"
 DIST_DIR="dist"
 ICON_PATH="Icon_WakeyWakey.icon/Assets/image.png"
 
@@ -65,7 +66,21 @@ if [[ ! -d "$APP_PATH" ]]; then
     exit 1
 fi
 
-# Step 2: Create dist directory
+# Step 2: Embed wakey CLI in app bundle
+if [[ -f "$CLI_PATH" ]]; then
+    echo "==> Embedding wakey CLI in app bundle..."
+    cp "$CLI_PATH" "$APP_PATH/Contents/MacOS/wakey"
+    # Re-sign the app bundle after modification
+    codesign --force --deep --sign "Developer ID Application: Brandon Seaver (CMFBMNG959)" \
+        --timestamp -o runtime "$APP_PATH"
+    echo "==> App bundle re-signed with embedded CLI"
+else
+    echo "WARNING: wakey CLI binary not found at $CLI_PATH"
+    echo "  Run build.sh to build both targets before releasing"
+    exit 1
+fi
+
+# Step 3: Create dist directory
 mkdir -p "$DIST_DIR"
 
 # Remove old DMG if exists
@@ -74,7 +89,7 @@ if [[ -f "$DMG_PATH" ]]; then
     rm -f "$DMG_PATH"
 fi
 
-# Step 3: Create DMG
+# Step 4: Create DMG
 echo "==> Creating DMG..."
 create-dmg \
     --volname "$APP_NAME" \
@@ -92,7 +107,7 @@ echo ""
 echo "==> DMG created: $DMG_PATH"
 ls -lh "$DMG_PATH"
 
-# Step 4: Notarize the DMG
+# Step 5: Notarize the DMG
 echo ""
 echo "==> Notarizing DMG (this may take a few minutes)..."
 xcrun notarytool submit "$DMG_PATH" \
@@ -104,7 +119,7 @@ xcrun stapler staple "$DMG_PATH"
 
 echo "==> Notarization complete!"
 
-# Step 5: Publish to GitHub (optional)
+# Step 6: Publish to GitHub (optional)
 if [[ "$PUBLISH" == "true" ]]; then
     echo ""
     echo "==> Publishing to GitHub..."

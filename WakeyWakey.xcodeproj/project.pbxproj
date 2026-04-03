@@ -7,12 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		07A37E154EC2ED4FDB44DC4F /* CLIServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEBAD3A0B21C72020D62F763 /* CLIServer.swift */; };
 		0BFF4CA7B69D53DED6753E50 /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B4F5BF8E95151F467D3712E /* SettingsWindowController.swift */; };
 		0D02628B0E56F42A4CC5449D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D64C68669D51B0771B3ED7 /* AppDelegate.swift */; };
 		191FEA10E3AF0174315F9E1F /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 828A4A94A98F0E83E2A32AFB /* IOKit.framework */; };
 		2635E293BA42012B491F197F /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BB805F4F5CADB7C94717775 /* Settings.swift */; };
 		613BBE897A7DC5A945348914 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 342CAC1F8F8BFCF03E6A343A /* SettingsViewController.swift */; };
 		9D2385C1AD92535ECD95B9FC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B3EA11476323F08F82D96245 /* Assets.xcassets */; };
+		B8FD3855B49C8E0651EC84A5 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0AD481EB0318A0BF907382 /* main.swift */; };
 		D9B953CBC87564BC63EFCD1A /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A806F8615883C35702E707 /* main.swift */; };
 		EFF215E219197DF78BC4DA3F /* ApplicationServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7D7704D5D0B9840EFE97894D /* ApplicationServices.framework */; };
 /* End PBXBuildFile section */
@@ -24,10 +26,13 @@
 		6BB805F4F5CADB7C94717775 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		7D7704D5D0B9840EFE97894D /* ApplicationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ApplicationServices.framework; path = System/Library/Frameworks/ApplicationServices.framework; sourceTree = SDKROOT; };
 		828A4A94A98F0E83E2A32AFB /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		A91BE3AA8EC8CD6835C32F79 /* wakey */ = {isa = PBXFileReference; includeInIndex = 0; path = wakey; sourceTree = BUILT_PRODUCTS_DIR; };
 		B3EA11476323F08F82D96245 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C0D64C68669D51B0771B3ED7 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		C5A806F8615883C35702E707 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		CC9D2243B8DACB27011CF4AF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		CEBAD3A0B21C72020D62F763 /* CLIServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIServer.swift; sourceTree = "<group>"; };
+		FE0AD481EB0318A0BF907382 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -46,6 +51,7 @@
 		0FCC89E3BDE66358F8A02D61 /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				A91BE3AA8EC8CD6835C32F79 /* wakey */,
 				22A54044F37C4357AE4210DB /* WakeyWakey.app */,
 			);
 			name = Products;
@@ -82,6 +88,7 @@
 			children = (
 				C0D64C68669D51B0771B3ED7 /* AppDelegate.swift */,
 				B3EA11476323F08F82D96245 /* Assets.xcassets */,
+				CEBAD3A0B21C72020D62F763 /* CLIServer.swift */,
 				C5A806F8615883C35702E707 /* main.swift */,
 				6BB805F4F5CADB7C94717775 /* Settings.swift */,
 				441BF4DD847F371007DC75A0 /* Resources */,
@@ -90,9 +97,18 @@
 			path = WakeyWakey;
 			sourceTree = "<group>";
 		};
+		8019BA10E0D459FD338B6F18 /* wakey */ = {
+			isa = PBXGroup;
+			children = (
+				FE0AD481EB0318A0BF907382 /* main.swift */,
+			);
+			path = wakey;
+			sourceTree = "<group>";
+		};
 		FFA11EE321A88F29815FE318 = {
 			isa = PBXGroup;
 			children = (
+				8019BA10E0D459FD338B6F18 /* wakey */,
 				47E3C82BAAF2D5098442A285 /* WakeyWakey */,
 				1B1F31D5E9A795732F1A81D9 /* Frameworks */,
 				0FCC89E3BDE66358F8A02D61 /* Products */,
@@ -121,6 +137,23 @@
 			productReference = 22A54044F37C4357AE4210DB /* WakeyWakey.app */;
 			productType = "com.apple.product-type.application";
 		};
+		ECA4812E6C72EE454613B3DC /* wakey */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B33704AB362CC94843879883 /* Build configuration list for PBXNativeTarget "wakey" */;
+			buildPhases = (
+				9D9C6F270575B6CFDED89A1D /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = wakey;
+			packageProductDependencies = (
+			);
+			productName = wakey;
+			productReference = A91BE3AA8EC8CD6835C32F79 /* wakey */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -133,10 +166,12 @@
 					959893DAA5428FA6C8DAA3F9 = {
 						DevelopmentTeam = CMFBMNG959;
 					};
+					ECA4812E6C72EE454613B3DC = {
+						DevelopmentTeam = CMFBMNG959;
+					};
 				};
 			};
 			buildConfigurationList = 6D9056C97CB2626C7CCE9C07 /* Build configuration list for PBXProject "WakeyWakey" */;
-			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -146,10 +181,12 @@
 			mainGroup = FFA11EE321A88F29815FE318;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
+			productRefGroup = 0FCC89E3BDE66358F8A02D61 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				959893DAA5428FA6C8DAA3F9 /* WakeyWakey */,
+				ECA4812E6C72EE454613B3DC /* wakey */,
 			);
 		};
 /* End PBXProject section */
@@ -166,11 +203,20 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		9D9C6F270575B6CFDED89A1D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B8FD3855B49C8E0651EC84A5 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F3D45F0C0EF5C2694564EEF9 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				0D02628B0E56F42A4CC5449D /* AppDelegate.swift in Sources */,
+				07A37E154EC2ED4FDB44DC4F /* CLIServer.swift in Sources */,
 				2635E293BA42012B491F197F /* Settings.swift in Sources */,
 				613BBE897A7DC5A945348914 /* SettingsViewController.swift in Sources */,
 				0BFF4CA7B69D53DED6753E50 /* SettingsWindowController.swift in Sources */,
@@ -181,6 +227,24 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		1E1EC20615EE60325610FBC0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.brndnsvr.WakeyWakey.cli;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
 		4B3ACDD5E40678D5E05CB632 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -198,6 +262,26 @@
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CODE_SIGN_FLAGS = "--timestamp";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		510C94F490A3F0EC6810D4CF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_CODE_SIGN_FLAGS = "--timestamp";
+				PRODUCT_BUNDLE_IDENTIFIER = com.brndnsvr.WakeyWakey.cli;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -369,6 +453,15 @@
 			buildConfigurations = (
 				EA06A1C4929A71547613B946 /* Debug */,
 				8DA0AE03E3CC236461CE65E5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B33704AB362CC94843879883 /* Build configuration list for PBXNativeTarget "wakey" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1E1EC20615EE60325610FBC0 /* Debug */,
+				510C94F490A3F0EC6810D4CF /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
