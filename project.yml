@@ -45,3 +45,27 @@ targets:
     scheme:
       name: WakeyWakey
       testTargets: []
+  wakey:
+    type: tool
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: wakey
+    settings:
+      base:
+        ARCHS: arm64
+        PRODUCT_BUNDLE_IDENTIFIER: com.brndnsvr.WakeyWakey.cli
+      configs:
+        Debug:
+          ONLY_ACTIVE_ARCH: YES
+          CODE_SIGN_STYLE: Automatic
+          CODE_SIGN_IDENTITY: Apple Development
+        Release:
+          ONLY_ACTIVE_ARCH: NO
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: Developer ID Application
+          CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
+          OTHER_CODE_SIGN_FLAGS: --timestamp
+    scheme:
+      name: wakey
+      testTargets: []

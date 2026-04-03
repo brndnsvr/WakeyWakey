@@ -85,3 +85,6 @@ website/*
 website-docs/*
 website*
 
+
+# Task tracking (ctrl symlink)
+.task-tracking
