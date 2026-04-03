@@ -53,8 +53,8 @@ Click the menu bar icon (coffee cup) to access:
 | Quit | Exit the app |
 
 **Icon states:**
-- ☕ `cup.and.saucer` — disabled
-- ☕ `cup.and.saucer.fill` — enabled
+- Empty cup (`cup.and.saucer`) — disabled
+- Filled cup (`cup.and.saucer.fill`) — enabled
 
 ## CLI Usage
 
