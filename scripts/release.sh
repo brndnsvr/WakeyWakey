@@ -83,13 +83,28 @@ fi
 # Step 3: Create dist directory
 mkdir -p "$DIST_DIR"
 
+# Step 3a: Notarize the .app directly (so the stapled ticket lives on the .app,
+# not just the DMG — means installed copies work offline after reboot)
+APP_ZIP="${DIST_DIR}/${APP_NAME}-${VERSION}-app.zip"
+echo ""
+echo "==> Notarizing .app bundle (this may take a few minutes)..."
+ditto -c -k --keepParent "$APP_PATH" "$APP_ZIP"
+xcrun notarytool submit "$APP_ZIP" \
+    --keychain-profile "WakeyWakey-Notarize" \
+    --wait
+rm -f "$APP_ZIP"
+
+echo "==> Stapling notarization ticket to .app..."
+xcrun stapler staple "$APP_PATH"
+xcrun stapler validate "$APP_PATH"
+
 # Remove old DMG if exists
 if [[ -f "$DMG_PATH" ]]; then
     echo "==> Removing existing DMG..."
     rm -f "$DMG_PATH"
 fi
 
-# Step 4: Create DMG
+# Step 4: Create DMG (now containing the stapled .app)
 echo "==> Creating DMG..."
 create-dmg \
     --volname "$APP_NAME" \
