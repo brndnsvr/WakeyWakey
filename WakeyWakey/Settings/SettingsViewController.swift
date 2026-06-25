@@ -1,6 +1,6 @@
 import Cocoa
 
-final class SettingsViewController: NSViewController {
+final class SettingsViewController: NSViewController, NSTextFieldDelegate {
 
     // MARK: - Timer Controls
 
@@ -19,6 +19,11 @@ final class SettingsViewController: NSViewController {
     private var minIntervalStepper: NSStepper!
     private var maxIntervalField: NSTextField!
     private var maxIntervalStepper: NSStepper!
+
+    private enum BehaviorLimit {
+        static let idleThreshold = 5...300
+        static let jiggleInterval = 10...600
+    }
 
     override func loadView() {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 300))
@@ -192,7 +197,7 @@ final class SettingsViewController: NSViewController {
         intervalLabel.widthAnchor.constraint(equalToConstant: 80).isActive = true
 
         minIntervalField = createNumberField(width: 55)
-        minIntervalStepper = createStepper(min: 10, max: 600, value: 42)
+        minIntervalStepper = createStepper(min: 10, max: 600, value: 12)
         minIntervalStepper.target = self
         minIntervalStepper.action = #selector(minIntervalStepperChanged)
 
@@ -260,8 +265,12 @@ final class SettingsViewController: NSViewController {
         let field = NSTextField()
         field.formatter = createNumberFormatter()
         field.alignment = .right
+        field.isSelectable = true
+        field.isEditable = true
+        field.usesSingleLineMode = true
         field.translatesAutoresizingMaskIntoConstraints = false
         field.widthAnchor.constraint(equalToConstant: width).isActive = true
+        field.delegate = self
         field.target = self
         field.action = #selector(behaviorValueChanged)
         return field
@@ -270,8 +279,6 @@ final class SettingsViewController: NSViewController {
     private func createNumberFormatter() -> NumberFormatter {
         let formatter = NumberFormatter()
         formatter.numberStyle = .none
-        formatter.minimum = 1
-        formatter.maximum = 600
         formatter.allowsFloats = false
         return formatter
     }
@@ -294,6 +301,26 @@ final class SettingsViewController: NSViewController {
         stack.spacing = 1
         stack.alignment = .centerY
         return stack
+    }
+
+    // MARK: - Text Field Editing
+
+    func controlTextDidBeginEditing(_ obj: Notification) {
+        guard let field = obj.object as? NSTextField, isBehaviorField(field) else { return }
+
+        DispatchQueue.main.async { [weak field] in
+            guard let field = field, let editor = field.currentEditor() else { return }
+            editor.selectedRange = NSRange(location: field.stringValue.count, length: 0)
+        }
+    }
+
+    func controlTextDidEndEditing(_ obj: Notification) {
+        guard let field = obj.object as? NSTextField, isBehaviorField(field) else { return }
+        commitBehaviorValues(changedField: field)
+    }
+
+    private func isBehaviorField(_ field: NSTextField) -> Bool {
+        field === idleThresholdField || field === minIntervalField || field === maxIntervalField
     }
 
     // MARK: - Load/Save
@@ -320,14 +347,7 @@ final class SettingsViewController: NSViewController {
         selectMinutes(picker: timer3MinutesPicker, minutes: t3Minutes)
 
         // Behavior
-        idleThresholdField.integerValue = Int(settings.idleThreshold)
-        idleThresholdStepper.integerValue = Int(settings.idleThreshold)
-
-        minIntervalField.integerValue = Int(settings.jiggleIntervalMin)
-        minIntervalStepper.integerValue = Int(settings.jiggleIntervalMin)
-
-        maxIntervalField.integerValue = Int(settings.jiggleIntervalMax)
-        maxIntervalStepper.integerValue = Int(settings.jiggleIntervalMax)
+        syncBehaviorUI()
     }
 
     private func selectMinutes(picker: NSPopUpButton, minutes: Int) {
@@ -358,24 +378,52 @@ final class SettingsViewController: NSViewController {
     }
 
     @objc private func behaviorValueChanged(_ sender: NSTextField) {
+        commitBehaviorValues(changedField: sender)
+    }
+
+    private func commitBehaviorValues(changedField: NSTextField?) {
         let settings = Settings.shared
 
-        settings.idleThreshold = TimeInterval(idleThresholdField.integerValue)
-        settings.jiggleIntervalMin = TimeInterval(minIntervalField.integerValue)
-        settings.jiggleIntervalMax = TimeInterval(maxIntervalField.integerValue)
+        let idleThreshold = clamped(idleThresholdField.integerValue, to: BehaviorLimit.idleThreshold)
+        var minInterval = clamped(minIntervalField.integerValue, to: BehaviorLimit.jiggleInterval)
+        var maxInterval = clamped(maxIntervalField.integerValue, to: BehaviorLimit.jiggleInterval)
+
+        if maxInterval < minInterval {
+            if changedField === maxIntervalField {
+                minInterval = maxInterval
+            } else {
+                maxInterval = minInterval
+            }
+        }
+
+        settings.idleThreshold = TimeInterval(idleThreshold)
+        settings.jiggleIntervalMin = TimeInterval(minInterval)
+        settings.jiggleIntervalMax = TimeInterval(maxInterval)
 
         // Sync UI with validated values from Settings
         syncBehaviorUI()
     }
 
+    private func clamped(_ value: Int, to range: ClosedRange<Int>) -> Int {
+        Swift.min(Swift.max(value, range.lowerBound), range.upperBound)
+    }
+
     private func syncBehaviorUI() {
         let settings = Settings.shared
-        idleThresholdField.integerValue = Int(settings.idleThreshold)
-        idleThresholdStepper.integerValue = Int(settings.idleThreshold)
-        minIntervalField.integerValue = Int(settings.jiggleIntervalMin)
-        minIntervalStepper.integerValue = Int(settings.jiggleIntervalMin)
-        maxIntervalField.integerValue = Int(settings.jiggleIntervalMax)
-        maxIntervalStepper.integerValue = Int(settings.jiggleIntervalMax)
+
+        let idleThreshold = clamped(Int(settings.idleThreshold), to: BehaviorLimit.idleThreshold)
+        let minInterval = clamped(Int(settings.jiggleIntervalMin), to: BehaviorLimit.jiggleInterval)
+        let maxInterval = Swift.max(
+            minInterval,
+            clamped(Int(settings.jiggleIntervalMax), to: BehaviorLimit.jiggleInterval)
+        )
+
+        idleThresholdField.integerValue = idleThreshold
+        idleThresholdStepper.integerValue = idleThreshold
+        minIntervalField.integerValue = minInterval
+        minIntervalStepper.integerValue = minInterval
+        maxIntervalField.integerValue = maxInterval
+        maxIntervalStepper.integerValue = maxInterval
     }
 
     @objc private func idleStepperChanged(_ sender: NSStepper) {

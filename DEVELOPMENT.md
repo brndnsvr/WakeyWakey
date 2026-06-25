@@ -100,13 +100,13 @@ To stop the app:
 ### Create DMG only
 
 ```bash
-./scripts/release.sh 1.2.0
+./scripts/release.sh 1.2.2
 ```
 
 ### Create DMG + publish to GitHub
 
 ```bash
-./scripts/release.sh 1.2.0 --publish
+./scripts/release.sh 1.2.2 --publish
 ```
 
 This will:
@@ -120,7 +120,7 @@ This will:
 To skip the build step (use existing build artifacts):
 
 ```bash
-SKIP_BUILD=true ./scripts/release.sh 1.2.0 --publish
+SKIP_BUILD=true ./scripts/release.sh 1.2.2 --publish
 ```
 
 ### Update Homebrew Tap
