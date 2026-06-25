@@ -21,11 +21,11 @@ final class Settings: ObservableObject {
     // MARK: - Defaults
 
     private enum Default {
-        static let timerDuration1: TimeInterval = 3600      // 1 hour
-        static let timerDuration2: TimeInterval = 14400     // 4 hours
+        static let timerDuration1: TimeInterval = 4200      // 1 hour 10 minutes
+        static let timerDuration2: TimeInterval = 15600     // 4 hours 20 minutes
         static let timerDuration3: TimeInterval = 32400     // 9 hours
         static let idleThreshold: TimeInterval = 42
-        static let jiggleIntervalMin: TimeInterval = 42
+        static let jiggleIntervalMin: TimeInterval = 12
         static let jiggleIntervalMax: TimeInterval = 79
     }
 

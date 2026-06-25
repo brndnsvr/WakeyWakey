@@ -5,6 +5,15 @@ All notable changes to WakeyWakey will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-06-25
+
+### Changed
+- Defaults now use 1h10m, 4h20m, and 9h timer presets.
+- Default jiggle repeat interval now starts at 12 seconds and ends at 79 seconds.
+
+### Fixed
+- Settings number fields now place the caret for inline editing and preserve valid min/max ranges.
+
 ## [1.1.0] - 2025-01-13
 
 ### Added
@@ -45,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-monitor support with cursor clamping
 - Center bias (52%) to prevent edge drift
 
+[1.2.2]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.2.2
 [1.1.0]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.1.0
 [1.0.2]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.0.2
 [1.0.1]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.0.1

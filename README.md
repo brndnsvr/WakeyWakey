@@ -16,7 +16,7 @@ This installs both the menu bar app and the `wakey` CLI.
 
 ### Manual Download
 
-**[Download WakeyWakey v1.2.0](https://github.com/brndnsvr/WakeyWakey/releases/download/v1.2.0/WakeyWakey-1.2.0.dmg)** (macOS 15.0+, Apple Silicon)
+**[Download WakeyWakey v1.2.2](https://github.com/brndnsvr/WakeyWakey/releases/download/v1.2.2/WakeyWakey-1.2.2.dmg)** (macOS 15.0+, Apple Silicon)
 
 Or visit [Releases](https://github.com/brndnsvr/WakeyWakey/releases) for all versions.
 
@@ -34,7 +34,7 @@ Or visit [Releases](https://github.com/brndnsvr/WakeyWakey/releases) for all ver
 - **Menu bar only** — no Dock icon, stays out of your way
 - **Smart activation** — only jiggles after idle threshold (default 42 seconds)
 - **Natural movement** — animated multi-waypoint paths that look like real mouse movement
-- **Timer options** — enable for 1h, 4h, or 9h (configurable) with auto-disable
+- **Timer options** — enable for 1h10m, 4h20m, or 9h (configurable) with auto-disable
 - **CLI control** — `wakey enable`, `wakey disable`, `wakey status` from the terminal
 - **Configurable** — adjust timers, idle threshold, and jiggle intervals in Settings
 - **Launch at Login** — start automatically with your Mac
@@ -47,7 +47,7 @@ Click the menu bar icon (coffee cup) to access:
 | Menu Item | Action |
 |-----------|--------|
 | Enable/Disable | Toggle mouse jiggle on/off |
-| Enable for 1h/4h/9h | Auto-disable after set time (configurable) |
+| Enable for 1h10m/4h20m/9h | Auto-disable after set time (configurable) |
 | Launch at Login | Start with macOS |
 | Settings... | Configure timers, idle threshold, jiggle intervals |
 | Quit | Exit the app |
