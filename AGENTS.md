@@ -301,19 +301,13 @@ State is managed by the system and visible in System Settings → General → Lo
 
 ## Task Tracking
 
-This project uses centralized task tracking via [ctrl](https://github.com/brndnsvr/ctrl).
+Tasks for this repo live in Plane on `plane-goa` (workspace `wzrd`, project
+"bss Releases release WakeyWakey" — no Plane project yet; create one on first task). The old local `.task-tracking/` markdown tracker is retired —
+do not recreate it or mint new local `WW-XXX` numbers.
 
-- **Task file:** `.task-tracking/TASKS.md` (symlink to `~/ctrl/.task-tracking/repos/bss/_Apps/WakeyWakey/`)
-- **ID format:** `WW-XXX` (e.g., `WW-001`)
-- **Never renumber** existing IDs
-- If `.task-tracking/TASKS.md` is absent in a release checkout, note that and proceed without inventing task IDs unless asked to wire up ctrl.
-
-### Workflow
-- Check Inflight section before starting work when the task file exists
-- Create tasks for non-trivial work (>15 min or worth tracking) when the task file exists
-- Move tasks between sections: Inbox -> Next -> Inflight -> Done
-- Reference task IDs in commits when available: `WW-XXX: description`
-- Branch naming with task ID: `ww-XXX-short-description`; otherwise use `<type>/<short-description>`
-
-### Labels
-bug, feature, refactor, docs, infra, automation
+**Workflow:**
+- Read and update items in Plane (Plane UI or the `wzrd-plane-bridge` skill)
+- Create a Plane item for non-trivial work (>15 min or worth tracking)
+- Reference the Plane task ID in commits: `<PLANE-ID>: description`
+- Branch naming: `<plane-id>-short-description`
+- Legacy `WW-XXX` IDs survive only as Plane import provenance — never assign new ones
