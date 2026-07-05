@@ -302,12 +302,11 @@ State is managed by the system and visible in System Settings → General → Lo
 ## Task Tracking
 
 Tasks for this repo live in Plane on `plane-goa` (workspace `wzrd`, project
-"bss Releases release WakeyWakey" — no Plane project yet; create one on first task). The old local `.task-tracking/` markdown tracker is retired —
-do not recreate it or mint new local `WW-XXX` numbers.
+"bss Releases release WakeyWakey" — no Plane project yet; create one on first task). Repo-local markdown task trackers are retired — do not recreate them or mint new local task numbers.
 
 **Workflow:**
 - Read and update items in Plane (Plane UI or the `wzrd-plane-bridge` skill)
 - Create a Plane item for non-trivial work (>15 min or worth tracking)
 - Reference the Plane task ID in commits: `<PLANE-ID>: description`
 - Branch naming: `<plane-id>-short-description`
-- Legacy `WW-XXX` IDs survive only as Plane import provenance — never assign new ones
+- Legacy local task IDs survive only in historical git history — never assign new ones
