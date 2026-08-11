@@ -79,6 +79,7 @@ targets:
     sources:
       - path: WakeyWakeyTests
       - path: Shared
+      - path: WakeyWakey/EnableUntilParser.swift
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
