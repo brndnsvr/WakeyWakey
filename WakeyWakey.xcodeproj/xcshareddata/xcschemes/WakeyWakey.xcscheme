@@ -39,6 +39,17 @@
          </BuildableReference>
       </MacroExpansion>
       <Testables>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "8DB545BFA7D4E4BA74ABFDE9"
+               BuildableName = "WakeyWakeyTests.xctest"
+               BlueprintName = "WakeyWakeyTests"
+               ReferencedContainer = "container:WakeyWakey.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>

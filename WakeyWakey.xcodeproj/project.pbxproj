@@ -10,9 +10,14 @@
 		07A37E154EC2ED4FDB44DC4F /* CLIServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEBAD3A0B21C72020D62F763 /* CLIServer.swift */; };
 		0BFF4CA7B69D53DED6753E50 /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B4F5BF8E95151F467D3712E /* SettingsWindowController.swift */; };
 		0D02628B0E56F42A4CC5449D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D64C68669D51B0771B3ED7 /* AppDelegate.swift */; };
+		16D9F2AF0EFA90D4BBBC0BC8 /* DurationParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101DFDFC005409DCEAB38237 /* DurationParser.swift */; };
 		191FEA10E3AF0174315F9E1F /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 828A4A94A98F0E83E2A32AFB /* IOKit.framework */; };
 		2635E293BA42012B491F197F /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BB805F4F5CADB7C94717775 /* Settings.swift */; };
+		31E47E71A5824DB3EDE4EC94 /* DurationParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F37C3352B9066EF92F09EF7 /* DurationParserTests.swift */; };
+		5461AD8F95D4BAD886968441 /* DurationParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101DFDFC005409DCEAB38237 /* DurationParser.swift */; };
 		613BBE897A7DC5A945348914 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 342CAC1F8F8BFCF03E6A343A /* SettingsViewController.swift */; };
+		7BC96845D62DE514AC2C23A0 /* DurationMenuItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DD4701793CB63B192C4E2E0 /* DurationMenuItemView.swift */; };
+		921D3E4033EF085ECB1A9F2B /* DurationParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101DFDFC005409DCEAB38237 /* DurationParser.swift */; };
 		9D2385C1AD92535ECD95B9FC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B3EA11476323F08F82D96245 /* Assets.xcassets */; };
 		B8FD3855B49C8E0651EC84A5 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0AD481EB0318A0BF907382 /* main.swift */; };
 		D9B953CBC87564BC63EFCD1A /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A806F8615883C35702E707 /* main.swift */; };
@@ -20,6 +25,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0B1863571A98CB33C46F5427 /* WakeyWakeyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WakeyWakeyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0F37C3352B9066EF92F09EF7 /* DurationParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationParserTests.swift; sourceTree = "<group>"; };
+		101DFDFC005409DCEAB38237 /* DurationParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationParser.swift; sourceTree = "<group>"; };
+		1DD4701793CB63B192C4E2E0 /* DurationMenuItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationMenuItemView.swift; sourceTree = "<group>"; };
 		22A54044F37C4357AE4210DB /* WakeyWakey.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WakeyWakey.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		342CAC1F8F8BFCF03E6A343A /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		6B4F5BF8E95151F467D3712E /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
@@ -53,6 +62,7 @@
 			children = (
 				A91BE3AA8EC8CD6835C32F79 /* wakey */,
 				22A54044F37C4357AE4210DB /* WakeyWakey.app */,
+				0B1863571A98CB33C46F5427 /* WakeyWakeyTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -89,12 +99,21 @@
 				C0D64C68669D51B0771B3ED7 /* AppDelegate.swift */,
 				B3EA11476323F08F82D96245 /* Assets.xcassets */,
 				CEBAD3A0B21C72020D62F763 /* CLIServer.swift */,
+				1DD4701793CB63B192C4E2E0 /* DurationMenuItemView.swift */,
 				C5A806F8615883C35702E707 /* main.swift */,
 				6BB805F4F5CADB7C94717775 /* Settings.swift */,
 				441BF4DD847F371007DC75A0 /* Resources */,
 				17C2F78F9D1E1D76AAED9ACD /* Settings */,
 			);
 			path = WakeyWakey;
+			sourceTree = "<group>";
+		};
+		6A10D9366AAA8444DD3E55A0 /* WakeyWakeyTests */ = {
+			isa = PBXGroup;
+			children = (
+				0F37C3352B9066EF92F09EF7 /* DurationParserTests.swift */,
+			);
+			path = WakeyWakeyTests;
 			sourceTree = "<group>";
 		};
 		8019BA10E0D459FD338B6F18 /* wakey */ = {
@@ -105,11 +124,21 @@
 			path = wakey;
 			sourceTree = "<group>";
 		};
+		FDB0CEA8C27BD29DEDC7BD92 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				101DFDFC005409DCEAB38237 /* DurationParser.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		FFA11EE321A88F29815FE318 = {
 			isa = PBXGroup;
 			children = (
+				FDB0CEA8C27BD29DEDC7BD92 /* Shared */,
 				8019BA10E0D459FD338B6F18 /* wakey */,
 				47E3C82BAAF2D5098442A285 /* WakeyWakey */,
+				6A10D9366AAA8444DD3E55A0 /* WakeyWakeyTests */,
 				1B1F31D5E9A795732F1A81D9 /* Frameworks */,
 				0FCC89E3BDE66358F8A02D61 /* Products */,
 			);
@@ -118,6 +147,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		8DB545BFA7D4E4BA74ABFDE9 /* WakeyWakeyTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B226383835BAF0EED612316E /* Build configuration list for PBXNativeTarget "WakeyWakeyTests" */;
+			buildPhases = (
+				8FB9C746EC25E6833EA564BC /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WakeyWakeyTests;
+			packageProductDependencies = (
+			);
+			productName = WakeyWakeyTests;
+			productReference = 0B1863571A98CB33C46F5427 /* WakeyWakeyTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		959893DAA5428FA6C8DAA3F9 /* WakeyWakey */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 26A22D7C7DD7A336A6050E55 /* Build configuration list for PBXNativeTarget "WakeyWakey" */;
@@ -163,6 +209,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					8DB545BFA7D4E4BA74ABFDE9 = {
+						DevelopmentTeam = CMFBMNG959;
+					};
 					959893DAA5428FA6C8DAA3F9 = {
 						DevelopmentTeam = CMFBMNG959;
 					};
@@ -187,6 +236,7 @@
 			targets = (
 				959893DAA5428FA6C8DAA3F9 /* WakeyWakey */,
 				ECA4812E6C72EE454613B3DC /* wakey */,
+				8DB545BFA7D4E4BA74ABFDE9 /* WakeyWakeyTests */,
 			);
 		};
 /* End PBXProject section */
@@ -203,10 +253,20 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		8FB9C746EC25E6833EA564BC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				16D9F2AF0EFA90D4BBBC0BC8 /* DurationParser.swift in Sources */,
+				31E47E71A5824DB3EDE4EC94 /* DurationParserTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9D9C6F270575B6CFDED89A1D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5461AD8F95D4BAD886968441 /* DurationParser.swift in Sources */,
 				B8FD3855B49C8E0651EC84A5 /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -217,6 +277,8 @@
 			files = (
 				0D02628B0E56F42A4CC5449D /* AppDelegate.swift in Sources */,
 				07A37E154EC2ED4FDB44DC4F /* CLIServer.swift in Sources */,
+				7BC96845D62DE514AC2C23A0 /* DurationMenuItemView.swift in Sources */,
+				921D3E4033EF085ECB1A9F2B /* DurationParser.swift in Sources */,
 				2635E293BA42012B491F197F /* Settings.swift in Sources */,
 				613BBE897A7DC5A945348914 /* SettingsViewController.swift in Sources */,
 				0BFF4CA7B69D53DED6753E50 /* SettingsWindowController.swift in Sources */,
@@ -244,6 +306,23 @@
 				SDKROOT = macosx;
 			};
 			name = Debug;
+		};
+		460DCAA765FEE5D3D69A7B84 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.brndnsvr.WakeyWakeyTests;
+				SDKROOT = macosx;
+			};
+			name = Release;
 		};
 		4B3ACDD5E40678D5E05CB632 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -367,6 +446,23 @@
 			};
 			name = Release;
 		};
+		93C5B4ACD384E1B288BD1919 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.brndnsvr.WakeyWakeyTests;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
 		EA06A1C4929A71547613B946 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -453,6 +549,15 @@
 			buildConfigurations = (
 				EA06A1C4929A71547613B946 /* Debug */,
 				8DA0AE03E3CC236461CE65E5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B226383835BAF0EED612316E /* Build configuration list for PBXNativeTarget "WakeyWakeyTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				93C5B4ACD384E1B288BD1919 /* Debug */,
+				460DCAA765FEE5D3D69A7B84 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

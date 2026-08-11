@@ -14,6 +14,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var timer1Item: NSMenuItem!
     private var timer2Item: NSMenuItem!
     private var timer3Item: NSMenuItem!
+    private var durationMenuView: DurationMenuItemView!
 
     private var isEnabled = false {
         didSet { updateUIForState() }
@@ -108,6 +109,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         timer3Item = NSMenuItem(title: "Enable for \(settings.formatDuration(settings.timerDuration3))", action: #selector(enableForTimer3), keyEquivalent: "")
         timer3Item.target = self
         menu.addItem(timer3Item)
+
+        durationMenuView = DurationMenuItemView()
+        durationMenuView.onSubmit = { [weak self] input in
+            self?.enableForEnteredDuration(input)
+        }
+        let durationItem = NSMenuItem()
+        durationItem.view = durationMenuView
+        menu.addItem(durationItem)
 
         menu.addItem(NSMenuItem.separator())
 
@@ -205,6 +214,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func enableForTimer1() { enableForDuration(settings.timerDuration1) }
     @objc private func enableForTimer2() { enableForDuration(settings.timerDuration2) }
     @objc private func enableForTimer3() { enableForDuration(settings.timerDuration3) }
+
+    private func enableForEnteredDuration(_ input: String) {
+        guard let duration = DurationParser.parse(input) else {
+            durationMenuView.showValidationError()
+            return
+        }
+
+        enableForDuration(duration)
+        durationMenuView.clearAfterSubmission()
+        statusItem.menu?.cancelTracking()
+    }
 
     private func enableForDuration(_ seconds: TimeInterval) {
         timerExpiresAt = Date().addingTimeInterval(seconds)
