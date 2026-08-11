@@ -21,6 +21,7 @@ targets:
     deploymentTarget: "15.0"
     sources:
       - path: WakeyWakey
+      - path: Shared
     resources:
       - path: WakeyWakey/Assets.xcassets
       - path: WakeyWakey/Resources/Info.plist
@@ -44,13 +45,15 @@ targets:
       - sdk: ApplicationServices.framework
     scheme:
       name: WakeyWakey
-      testTargets: []
+      testTargets:
+        - WakeyWakeyTests
   wakey:
     type: tool
     platform: macOS
     deploymentTarget: "15.0"
     sources:
       - path: wakey
+      - path: Shared
     settings:
       base:
         ARCHS: arm64
@@ -69,3 +72,15 @@ targets:
     scheme:
       name: wakey
       testTargets: []
+  WakeyWakeyTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: WakeyWakeyTests
+      - path: Shared
+      - path: WakeyWakey/EnableUntilParser.swift
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.brndnsvr.WakeyWakeyTests

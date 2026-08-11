@@ -14,6 +14,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var timer1Item: NSMenuItem!
     private var timer2Item: NSMenuItem!
     private var timer3Item: NSMenuItem!
+    private var enableUntilMenuView: EnableUntilMenuItemView!
 
     private var isEnabled = false {
         didSet { updateUIForState() }
@@ -108,6 +109,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         timer3Item = NSMenuItem(title: "Enable for \(settings.formatDuration(settings.timerDuration3))", action: #selector(enableForTimer3), keyEquivalent: "")
         timer3Item.target = self
         menu.addItem(timer3Item)
+
+        enableUntilMenuView = EnableUntilMenuItemView()
+        enableUntilMenuView.onSubmit = { [weak self] input in
+            self?.enableUntilEnteredTime(input)
+        }
+        let enableUntilItem = NSMenuItem()
+        enableUntilItem.view = enableUntilMenuView
+        menu.addItem(enableUntilItem)
 
         menu.addItem(NSMenuItem.separator())
 
@@ -206,8 +215,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func enableForTimer2() { enableForDuration(settings.timerDuration2) }
     @objc private func enableForTimer3() { enableForDuration(settings.timerDuration3) }
 
+    private func enableUntilEnteredTime(_ input: String) {
+        guard let expiration = EnableUntilParser.nextDate(for: input) else {
+            enableUntilMenuView.showValidationError()
+            return
+        }
+
+        enable(until: expiration)
+        enableUntilMenuView.clearAfterSubmission()
+        statusItem.menu?.cancelTracking()
+    }
+
     private func enableForDuration(_ seconds: TimeInterval) {
-        timerExpiresAt = Date().addingTimeInterval(seconds)
+        enable(until: Date().addingTimeInterval(seconds))
+    }
+
+    private func enable(until expiration: Date) {
+        timerExpiresAt = expiration
         if !isEnabled {
             isEnabled = true
             beginPreventingSleep()

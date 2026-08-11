@@ -16,7 +16,7 @@ This installs both the menu bar app and the `wakey` CLI.
 
 ### Manual Download
 
-**[Download WakeyWakey v1.2.2](https://github.com/brndnsvr/WakeyWakey/releases/download/v1.2.2/WakeyWakey-1.2.2.dmg)** (macOS 15.0+, Apple Silicon)
+**[Download WakeyWakey v1.3.1](https://github.com/brndnsvr/WakeyWakey/releases/download/v1.3.1/WakeyWakey-1.3.1.dmg)** (macOS 15.0+, Apple Silicon)
 
 Or visit [Releases](https://github.com/brndnsvr/WakeyWakey/releases) for all versions.
 
@@ -34,7 +34,7 @@ Or visit [Releases](https://github.com/brndnsvr/WakeyWakey/releases) for all ver
 - **Menu bar only** — no Dock icon, stays out of your way
 - **Smart activation** — only jiggles after idle threshold (default 42 seconds)
 - **Natural movement** — animated multi-waypoint paths that look like real mouse movement
-- **Timer options** — enable for 1h10m, 4h20m, or 9h (configurable) with auto-disable
+- **Timer options** — use configurable 1h10m/4h20m/9h presets or enter a clock time such as `5pm` or `5:00`
 - **CLI control** — `wakey enable`, `wakey disable`, `wakey status` from the terminal
 - **Configurable** — adjust timers, idle threshold, and jiggle intervals in Settings
 - **Launch at Login** — start automatically with your Mac
@@ -48,6 +48,7 @@ Click the menu bar icon (coffee cup) to access:
 |-----------|--------|
 | Enable/Disable | Toggle mouse jiggle on/off |
 | Enable for 1h10m/4h20m/9h | Auto-disable after set time (configurable) |
+| Enable until | Enter a clock time such as `5pm`, `5:00`, or `5:30pm`, then press Return |
 | Launch at Login | Start with macOS |
 | Settings... | Configure timers, idle threshold, jiggle intervals |
 | Quit | Exit the app |
@@ -66,6 +67,7 @@ The `wakey` command controls WakeyWakey from the terminal (requires the app to b
 wakey enable          # Enable indefinitely
 wakey enable 2h       # Enable for 2 hours
 wakey enable 90m      # Enable for 90 minutes
+wakey enable 3.5h     # Enable for 3.5 hours
 wakey disable         # Disable
 wakey status          # Show current status
 wakey --help          # Show help

@@ -8,8 +8,8 @@ let recvTimeout: CFTimeInterval = 5.0
 
 // MARK: - Help
 
-let version = "1.2.2"
-let build = "7"
+let version = "1.3.1"
+let build = "8"
 
 let helpText = """
 WakeyWakey v\(version) (build \(build))
@@ -22,7 +22,7 @@ USAGE:
 
 COMMANDS:
     enable          Enable indefinitely
-    enable <dur>    Enable for a duration (e.g., 2h, 90m, 11h)
+    enable <dur>    Enable for a duration (e.g., 2h, 90m, 3.5h)
     disable         Disable
     status          Show current status
 
@@ -33,26 +33,10 @@ EXAMPLES:
     wakey enable
     wakey enable 2h
     wakey enable 90m
+    wakey enable 3.5h
     wakey disable
     wakey status
 """
-
-// MARK: - Duration Parsing
-
-/// Parses strings like "2h", "90m", "11h" into seconds. Returns nil on failure.
-func parseDuration(_ str: String) -> TimeInterval? {
-    let s = str.lowercased().trimmingCharacters(in: .whitespaces)
-    guard s.count >= 2 else { return nil }
-
-    let suffix = s.last!
-    guard let value = Double(s.dropLast()), value > 0 else { return nil }
-
-    switch suffix {
-    case "h": return value * 3600
-    case "m": return value * 60
-    default: return nil
-    }
-}
 
 // MARK: - IPC
 
@@ -105,8 +89,8 @@ switch command {
 case "enable":
     var request: [String: Any] = ["command": "enable"]
     if args.count >= 2 {
-        guard let seconds = parseDuration(args[1]) else {
-            fputs("Invalid duration: \(args[1]). Use format like 2h or 90m.\n", stderr)
+        guard let seconds = DurationParser.parse(args[1]) else {
+            fputs("Invalid duration: \(args[1]). Use format like 2h, 90m, or 3.5h.\n", stderr)
             exit(1)
         }
         request["duration"] = seconds
