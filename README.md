@@ -16,7 +16,7 @@ This installs both the menu bar app and the `wakey` CLI.
 
 ### Manual Download
 
-**[Download WakeyWakey v1.4.0](https://github.com/brndnsvr/WakeyWakey/releases/download/v1.4.0/WakeyWakey-1.4.0.dmg)** (macOS 15.0+, Apple Silicon)
+**[Download WakeyWakey v1.4.1](https://github.com/brndnsvr/WakeyWakey/releases/download/v1.4.1/WakeyWakey-1.4.1.dmg)** (macOS 15.0+, Apple Silicon)
 
 Or visit [Releases](https://github.com/brndnsvr/WakeyWakey/releases) for all versions.
 
