@@ -114,16 +114,28 @@ override init() {
 func applicationDidFinishLaunching(_:) {
     statusItem = NSStatusBar.system.statusItem(withLength: .variable)
     if let button = statusItem.button {
-        button.image = NSImage(systemSymbolName: "cup.and.saucer", accessibilityDescription: nil)
-        button.image?.isTemplate = true  // For dark mode
         button.target = self
         button.action = #selector(statusItemClicked)
     }
+    updateStatusIcon()  // Sets the icon; never hard-code a single symbol here
     statusItem.menu = menu  // Must assign menu
 }
 
 @objc func statusItemClicked() {
     statusItem.popUpMenu(menu)  // Deprecated but working
+}
+
+// Status icon per mode: Wakey uses cup.and.saucer(.fill), Lights uses
+// lightbulb(.fill). The filled form means enabled. Called from updateUIForState()
+// and from the settings.$mode subscription, so it stays correct regardless of
+// which surface (menu, Settings, or CLI) changed the mode.
+private func updateStatusIcon() {
+    guard let button = statusItem.button else { return }
+    let baseSymbol = settings.mode == .lights ? "lightbulb" : "cup.and.saucer"
+    let symbol = isEnabled ? "\(baseSymbol).fill" : baseSymbol
+    let image = NSImage(systemSymbolName: symbol, accessibilityDescription: "WakeyWakey")
+    image?.isTemplate = true  // For dark mode
+    button.image = image
 }
 ```
 
@@ -143,19 +155,41 @@ func applicationDidFinishLaunching(_:) {
 `PreventSystemSleep` is used as a raw string, not the SDK's `kIOPMAssertionTypePreventSystemSleep` constant — that constant is deprecated (marked "not supported" since 10.9), even though `caffeinate -s` still creates the assertion and `pmset -g assertions` still reports it.
 
 ```swift
-// Wakey: prevent idle sleep AND display sleep (NoIdleSleep only prevents system sleep, not screensaver)
-IOPMAssertionCreateWithName(
-    kIOPMAssertionTypePreventUserIdleDisplaySleep as CFString,
-    IOPMAssertionLevel(kIOPMAssertionLevelOn),
-    "WakeyWakey Active" as CFString,
-    &powerAssertion
-)
+// PowerAssertionController.apply(_:): create every assertion in the new plan
+// first, then release whichever set was held before. Never a gap in between.
+@discardableResult
+func apply(_ plan: PowerPlan) -> [String] {
+    var newIDs: [IOPMAssertionID] = []
+    var newTypes: [String] = []
+    var failedTypes: [String] = []
 
-// Release when disabled
-IOPMAssertionRelease(powerAssertion)
+    for type in plan.assertionTypes {
+        var assertionID: IOPMAssertionID = 0
+        let result = IOPMAssertionCreateWithName(
+            type as CFString,
+            IOPMAssertionLevel(kIOPMAssertionLevelOn),
+            plan.assertionName as CFString,
+            &assertionID
+        )
+        if result == kIOReturnSuccess {
+            newIDs.append(assertionID)
+            newTypes.append(type)
+        } else {
+            failedTypes.append(type)
+        }
+    }
+
+    // New set is in place; only now release the old one
+    let oldIDs = heldIDs
+    heldIDs = newIDs
+    heldTypes = newTypes
+    oldIDs.forEach { IOPMAssertionRelease($0) }
+
+    return failedTypes
+}
 ```
 
-A mode switch, or a Lights checkbox change, while enabled creates the new assertion set first and only then releases the old one (`PowerAssertionController.apply(_:)`), so the Mac is never left without an assertion mid-swap.
+`AppDelegate.applyPowerPlan(_:)` calls `powerController.apply(plan)` on enable, on a mode switch, and on a Lights checkbox change while enabled — the same create-before-release path every time, so the Mac is never left without an assertion mid-swap.
 
 ## Architecture
 
@@ -217,7 +251,16 @@ No explicit state enum — uses `isEnabled` bool + `nextActivityDueAt` date, plu
 - **Timer expired** (`timerExpiresAt` reached): auto-disable, release whichever power assertion set is held
 
 ### Settings System
-`Settings.swift` is a singleton (`Settings.shared`) backed by `UserDefaults` with `@Published` properties and Combine integration. `AppDelegate` subscribes to changes via `Publishers.CombineLatest3` to update menu titles dynamically, and via `Publishers.CombineLatest4` on `mode` and the three Lights options to keep the held power assertions in sync (Settings, the menu, and the CLI all write the same `Settings` properties, so every surface stays consistent). Settings UI is in `Settings/SettingsWindowController.swift` and `Settings/SettingsViewController.swift`.
+`Settings.swift` is a singleton (`Settings.shared`) backed by `UserDefaults` with `@Published` properties and Combine integration. Settings UI is in `Settings/SettingsWindowController.swift` and `Settings/SettingsViewController.swift`.
+
+`AppDelegate` runs three independent subscriptions, all `receive(on: .main)` because `@Published` fires in `willSet`:
+- `Publishers.CombineLatest3` on the three timer durations, to update the menu's timer item titles.
+- `Publishers.CombineLatest4` on `mode` and the three Lights options, feeding `powerSettingsChanged()` to keep the *held power assertions* in sync. This sink returns early while disabled, since there is nothing to re-apply.
+- A separate `settings.$mode` subscription that drives `updateModeMenuState()` (the menu's Wakey/Lights checkmarks) and `updateStatusIcon()`. This one is deliberately kept apart from the CombineLatest4 sink above: it must update the checkmarks and icon on every mode change regardless of enabled state, which the power sink cannot guarantee since it exits early while disabled. Folding it into that sink would leave the icon and checkmarks stale after a mode change made while disabled.
+
+`SettingsViewController` runs its own `Publishers.CombineLatest4` on `mode` and the three Lights options (independent of `AppDelegate`'s), so the open Settings window's segmented control, checkboxes, dim state, and "Equivalent: caffeinate ..." line stay live when the mode or an option changes from the menu or the CLI while the window is open.
+
+Settings, the menu, and the CLI all write the same `Settings` properties, so every surface stays consistent.
 
 Configurable values: `mode` (`KeepAwakeMode`: `.wakey` / `.lights`), the three Lights options (`lightsKeepDisplayOn`, `lightsPreventSystemSleep`, `lightsWakeDisplay`, all default `true`), timer durations (3), idle threshold, jiggle interval min/max. `Settings.powerPlan` derives the current `PowerPlan` from `mode` and the Lights options. All have sensible defaults and a `resetToDefaults()` method, which also resets the mode to Wakey and all three Lights options to on. The Accessibility prompt (`requestAccessibilityPermissionIfNeeded`) runs only in Wakey — at launch, and again when switching into Wakey while not yet trusted.
 

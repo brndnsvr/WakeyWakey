@@ -48,10 +48,10 @@ Click the menu bar icon (coffee cup or lightbulb, depending on mode) to access:
 | Menu Item | Action |
 |-----------|--------|
 | Enable/Disable | Toggle the active mode on/off |
-| Enable for 1h10m/4h20m/9h | Auto-disable after set time (configurable) |
-| Enable until | Enter a clock time such as `5pm`, `5:00`, or `5:30pm`, then press Return |
 | Mode: Wakey | Switch to Wakey (cursor jiggle) |
 | Mode: Lights | Switch to Lights (no simulated input) |
+| Enable for 1h10m/4h20m/9h | Auto-disable after set time (configurable) |
+| Enable until | Enter a clock time such as `5pm`, `5:00`, or `5:30pm`, then press Return |
 | Launch at Login | Start with macOS |
 | Settings... | Configure mode, timers, idle threshold, jiggle intervals |
 | Quit | Exit the app |
