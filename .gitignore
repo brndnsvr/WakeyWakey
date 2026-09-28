@@ -88,3 +88,6 @@ website*
 
 # Task tracking (ctrl symlink)
 .task-tracking
+
+# Local dev archive (run plans, ledgers, test evidence)
+dev-archive/
