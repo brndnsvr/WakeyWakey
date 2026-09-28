@@ -393,6 +393,14 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
         for control in controls {
             control.isEnabled = active
         }
+
+        // Changing the title string/cell above does not, by itself, invalidate
+        // NSBox's layout: its internal title text field keeps its old frame
+        // (sized for the old text) until something marks the box as needing
+        // layout again. Without this, a live mode change (segment, menu, CLI,
+        // or Restore Defaults) on an already-open window leaves the title
+        // clipped or oddly positioned until the window is closed and reopened.
+        box.needsLayout = true
     }
 
     private var jiggleControls: [NSControl] {
