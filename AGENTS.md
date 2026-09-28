@@ -117,7 +117,7 @@ func applicationDidFinishLaunching(_:) {
         button.target = self
         button.action = #selector(statusItemClicked)
     }
-    updateStatusIcon()  // Sets the icon; never hard-code a single symbol here
+    updateStatusIcon()  // Coffee cup, filled while enabled
     statusItem.menu = menu  // Must assign menu
 }
 
@@ -125,14 +125,12 @@ func applicationDidFinishLaunching(_:) {
     statusItem.popUpMenu(menu)  // Deprecated but working
 }
 
-// Status icon per mode: Wakey uses cup.and.saucer(.fill), Lights uses
-// lightbulb(.fill). The filled form means enabled. Called from updateUIForState()
-// and from the settings.$mode subscription, so it stays correct regardless of
-// which surface (menu, Settings, or CLI) changed the mode.
+// Status icon: the coffee cup in every mode, filled while enabled. It does not
+// change with the mode; the mode is shown in the menu. Called from
+// updateUIForState() whenever isEnabled changes.
 private func updateStatusIcon() {
     guard let button = statusItem.button else { return }
-    let baseSymbol = settings.mode == .lights ? "lightbulb" : "cup.and.saucer"
-    let symbol = isEnabled ? "\(baseSymbol).fill" : baseSymbol
+    let symbol = isEnabled ? "cup.and.saucer.fill" : "cup.and.saucer"
     let image = NSImage(systemSymbolName: symbol, accessibilityDescription: "WakeyWakey")
     image?.isTemplate = true  // For dark mode
     button.image = image
@@ -256,7 +254,7 @@ No explicit state enum — uses `isEnabled` bool + `nextActivityDueAt` date, plu
 `AppDelegate` runs three independent subscriptions, all `receive(on: .main)` because `@Published` fires in `willSet`:
 - `Publishers.CombineLatest3` on the three timer durations, to update the menu's timer item titles.
 - `Publishers.CombineLatest4` on `mode` and the three Lights options, feeding `powerSettingsChanged()` to keep the *held power assertions* in sync. This sink returns early while disabled, since there is nothing to re-apply.
-- A separate `settings.$mode` subscription that drives `updateModeMenuState()` (the menu's Wakey/Lights checkmarks) and `updateStatusIcon()`. This one is deliberately kept apart from the CombineLatest4 sink above: it must update the checkmarks and icon on every mode change regardless of enabled state, which the power sink cannot guarantee since it exits early while disabled. Folding it into that sink would leave the icon and checkmarks stale after a mode change made while disabled.
+- A separate `settings.$mode` subscription that drives `updateModeMenuState()` (the menu's Wakey/Lights checkmarks). This one is deliberately kept apart from the CombineLatest4 sink above: it must update the checkmarks on every mode change regardless of enabled state, which the power sink cannot guarantee since it exits early while disabled. Folding it into that sink would leave the checkmarks stale after a mode change made while disabled. The status icon does not depend on the mode, so this subscription does not touch it.
 
 `SettingsViewController` runs its own `Publishers.CombineLatest4` on `mode` and the three Lights options (independent of `AppDelegate`'s), so the open Settings window's segmented control, checkboxes, dim state, and "Equivalent: caffeinate ..." line stay live when the mode or an option changes from the menu or the CLI while the window is open.
 
@@ -344,7 +342,7 @@ State is managed by the system and visible in System Settings → General → Lo
 - [ ] Menu bar icon appears (no Dock icon)
 - [ ] Clicking icon shows menu
 - [ ] Enable/Disable toggle works
-- [ ] Icon changes (cup.and.saucer ↔ cup.and.saucer.fill in Wakey, lightbulb ↔ lightbulb.fill in Lights)
+- [ ] Icon changes (cup.and.saucer ↔ cup.and.saucer.fill) and stays the cup when switching modes
 - [ ] Timer options (default 1h10m/4h20m/9h, configurable) enable and auto-disable
 - [ ] Launch at Login toggle works (verify in System Settings → Login Items)
 - [ ] Fresh install auto-opens Accessibility settings, in Wakey mode only
