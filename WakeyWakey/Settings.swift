@@ -16,6 +16,10 @@ final class Settings: ObservableObject {
         case idleThreshold
         case jiggleIntervalMin
         case jiggleIntervalMax
+        case mode
+        case lightsKeepDisplayOn
+        case lightsPreventSystemSleep
+        case lightsWakeDisplay
     }
 
     // MARK: - Defaults
@@ -27,6 +31,10 @@ final class Settings: ObservableObject {
         static let idleThreshold: TimeInterval = 42
         static let jiggleIntervalMin: TimeInterval = 12
         static let jiggleIntervalMax: TimeInterval = 79
+        static let mode: KeepAwakeMode = .wakey
+        static let lightsKeepDisplayOn = true       // caffeinate -d
+        static let lightsPreventSystemSleep = true  // caffeinate -s
+        static let lightsWakeDisplay = true         // caffeinate -u
     }
 
     // MARK: - Storage
@@ -73,7 +81,40 @@ final class Settings: ObservableObject {
         }
     }
 
+    // MARK: - Keep-Awake Mode
+
+    @Published var mode: KeepAwakeMode {
+        didSet { defaults.set(mode.rawValue, forKey: Key.mode.rawValue) }
+    }
+
+    // MARK: - Lights Options
+
+    /// Lights `-d`: also prevent display idle sleep.
+    @Published var lightsKeepDisplayOn: Bool {
+        didSet { defaults.set(lightsKeepDisplayOn, forKey: Key.lightsKeepDisplayOn.rawValue) }
+    }
+
+    /// Lights `-s`: also prevent system sleep (AC power only).
+    @Published var lightsPreventSystemSleep: Bool {
+        didSet { defaults.set(lightsPreventSystemSleep, forKey: Key.lightsPreventSystemSleep.rawValue) }
+    }
+
+    /// Lights `-u`: declare user activity once on enable (wakes the display).
+    @Published var lightsWakeDisplay: Bool {
+        didSet { defaults.set(lightsWakeDisplay, forKey: Key.lightsWakeDisplay.rawValue) }
+    }
+
     // MARK: - Computed Properties
+
+    /// What the current mode and Lights options hold while enabled
+    var powerPlan: PowerPlan {
+        PowerPlan.make(
+            mode: mode,
+            keepDisplayOn: lightsKeepDisplayOn,
+            preventSystemSleep: lightsPreventSystemSleep,
+            wakeDisplay: lightsWakeDisplay
+        )
+    }
 
     /// Returns timer durations as array for menu building
     var timerDurations: [TimeInterval] {
@@ -104,6 +145,15 @@ final class Settings: ObservableObject {
             ?? Default.jiggleIntervalMin
         self.jiggleIntervalMax = defaults.object(forKey: Key.jiggleIntervalMax.rawValue) as? TimeInterval
             ?? Default.jiggleIntervalMax
+        // Unknown or missing stored mode falls back to the default
+        self.mode = defaults.string(forKey: Key.mode.rawValue).flatMap(KeepAwakeMode.init(rawValue:))
+            ?? Default.mode
+        self.lightsKeepDisplayOn = defaults.object(forKey: Key.lightsKeepDisplayOn.rawValue) as? Bool
+            ?? Default.lightsKeepDisplayOn
+        self.lightsPreventSystemSleep = defaults.object(forKey: Key.lightsPreventSystemSleep.rawValue) as? Bool
+            ?? Default.lightsPreventSystemSleep
+        self.lightsWakeDisplay = defaults.object(forKey: Key.lightsWakeDisplay.rawValue) as? Bool
+            ?? Default.lightsWakeDisplay
     }
 
     // MARK: - Helpers
@@ -132,5 +182,9 @@ final class Settings: ObservableObject {
         idleThreshold = Default.idleThreshold
         jiggleIntervalMin = Default.jiggleIntervalMin
         jiggleIntervalMax = Default.jiggleIntervalMax
+        mode = Default.mode
+        lightsKeepDisplayOn = Default.lightsKeepDisplayOn
+        lightsPreventSystemSleep = Default.lightsPreventSystemSleep
+        lightsWakeDisplay = Default.lightsWakeDisplay
     }
 }

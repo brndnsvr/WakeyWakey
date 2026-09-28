@@ -1,6 +1,12 @@
 import Cocoa
+import Combine
 
 final class SettingsViewController: NSViewController, NSTextFieldDelegate {
+
+    // MARK: - Mode Controls
+
+    private var modeControl: NSSegmentedControl!
+    private var modeDescriptionLabel: NSTextField!
 
     // MARK: - Timer Controls
 
@@ -11,8 +17,9 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
     private var timer3HoursPicker: NSPopUpButton!
     private var timer3MinutesPicker: NSPopUpButton!
 
-    // MARK: - Behavior Controls
+    // MARK: - Jiggle Behavior Controls
 
+    private var behaviorBox: NSBox!
     private var idleThresholdField: NSTextField!
     private var idleThresholdStepper: NSStepper!
     private var minIntervalField: NSTextField!
@@ -20,18 +27,44 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
     private var maxIntervalField: NSTextField!
     private var maxIntervalStepper: NSStepper!
 
+    // MARK: - Lights Behavior Controls
+
+    private var lightsBox: NSBox!
+    private var keepDisplayOnCheckbox: NSButton!
+    private var preventSystemSleepCheckbox: NSButton!
+    private var wakeDisplayCheckbox: NSButton!
+    private var equivalentLabel: NSTextField!
+
+    private var cancellables = Set<AnyCancellable>()
+
     private enum BehaviorLimit {
         static let idleThreshold = 5...300
         static let jiggleInterval = 10...600
     }
 
+    private enum Layout {
+        static let windowWidth: CGFloat = 400
+        static let boxWidth: CGFloat = 360
+        static let boxContentWidth: CGFloat = 336
+        static let jiggleBoxBaseTitle = "Jiggle Behavior"
+        static let lightsBoxBaseTitle = "Lights Behavior"
+    }
+
     override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 300))
+        view = NSView()
         setupUI()
         loadSettings()
     }
 
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        subscribeToSettingsChanges()
+    }
+
     private func setupUI() {
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.widthAnchor.constraint(equalToConstant: Layout.windowWidth).isActive = true
+
         // Main vertical stack
         let mainStack = NSStackView()
         mainStack.orientation = .vertical
@@ -44,8 +77,11 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
             mainStack.topAnchor.constraint(equalTo: view.topAnchor, constant: 20),
             mainStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             mainStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            mainStack.bottomAnchor.constraint(lessThanOrEqualTo: view.bottomAnchor, constant: -20)
+            mainStack.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -20)
         ])
+
+        // Mode section
+        addFullWidthBox(createModeBox(), to: mainStack)
 
         // Quick Timers section
         let timerBox = createSectionBox(title: "Quick Timers")
@@ -60,10 +96,10 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
                 timerGrid.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
             ])
         }
-        mainStack.addArrangedSubview(timerBox)
+        addFullWidthBox(timerBox, to: mainStack)
 
         // Jiggle Behavior section
-        let behaviorBox = createSectionBox(title: "Jiggle Behavior")
+        behaviorBox = createSectionBox(title: Layout.jiggleBoxBaseTitle)
         let behaviorGrid = createBehaviorGrid()
         behaviorGrid.translatesAutoresizingMaskIntoConstraints = false
         behaviorBox.contentView?.addSubview(behaviorGrid)
@@ -75,7 +111,10 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
                 behaviorGrid.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
             ])
         }
-        mainStack.addArrangedSubview(behaviorBox)
+        addFullWidthBox(behaviorBox, to: mainStack)
+
+        // Lights Behavior section
+        addFullWidthBox(createLightsBox(), to: mainStack)
 
         // Button container (right-aligned)
         let buttonContainer = NSStackView()
@@ -104,6 +143,283 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
         box.titleFont = NSFont.systemFont(ofSize: 12, weight: .semibold)
         box.contentViewMargins = NSSize(width: 12, height: 12)
         return box
+    }
+
+    /// Adds a section box to the main stack at a fixed full-content-width (360 pt),
+    /// per the mockup: every box is full width regardless of its own content.
+    private func addFullWidthBox(_ box: NSBox, to stack: NSStackView) {
+        box.translatesAutoresizingMaskIntoConstraints = false
+        box.widthAnchor.constraint(equalToConstant: Layout.boxWidth).isActive = true
+        stack.addArrangedSubview(box)
+    }
+
+    // MARK: - Mode Box
+
+    private func createModeBox() -> NSBox {
+        let box = createSectionBox(title: "Mode")
+
+        let wakeyImage = NSImage(systemSymbolName: "cup.and.saucer", accessibilityDescription: "Wakey")
+        let lightsImage = NSImage(systemSymbolName: "lightbulb", accessibilityDescription: "Lights")
+
+        modeControl = NSSegmentedControl(
+            labels: ["Wakey", "Lights"],
+            trackingMode: .selectOne,
+            target: self,
+            action: #selector(modeChanged(_:))
+        )
+        modeControl.setImage(wakeyImage, forSegment: 0)
+        modeControl.setImage(lightsImage, forSegment: 1)
+
+        modeDescriptionLabel = createWrappingLabel("")
+
+        let contentStack = NSStackView(views: [modeControl, modeDescriptionLabel])
+        contentStack.orientation = .vertical
+        contentStack.alignment = .leading
+        contentStack.spacing = 8
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+
+        if let contentView = box.contentView {
+            contentView.addSubview(contentStack)
+            NSLayoutConstraint.activate([
+                contentStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+                contentStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+                contentStack.topAnchor.constraint(equalTo: contentView.topAnchor),
+                contentStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+            ])
+        }
+        return box
+    }
+
+    private static func modeDescription(for mode: KeepAwakeMode) -> String {
+        switch mode {
+        case .wakey:
+            return "Keeps the Mac awake and gently moves the cursor while you\u{2019}re idle, so apps that watch for activity still see you."
+        case .lights:
+            return "Lights on, nobody home. Keeps the Mac and display awake without moving the cursor, same as caffeinate -disu."
+        }
+    }
+
+    @objc private func modeChanged(_ sender: NSSegmentedControl) {
+        Settings.shared.mode = sender.selectedSegment == 0 ? .wakey : .lights
+    }
+
+    // MARK: - Lights Behavior Box
+
+    private func createLightsBox() -> NSBox {
+        let box = createSectionBox(title: Layout.lightsBoxBaseTitle)
+        lightsBox = box
+
+        keepDisplayOnCheckbox = NSButton(
+            checkboxWithTitle: "Keep the display on",
+            target: self,
+            action: #selector(lightsOptionChanged(_:))
+        )
+
+        preventSystemSleepCheckbox = NSButton(
+            checkboxWithTitle: "Prevent system sleep",
+            target: self,
+            action: #selector(lightsOptionChanged(_:))
+        )
+        preventSystemSleepCheckbox.attributedTitle = Self.attributedCheckboxTitle(
+            main: "Prevent system sleep",
+            secondarySuffix: "(AC power only)"
+        )
+
+        wakeDisplayCheckbox = NSButton(
+            checkboxWithTitle: "Wake the display when enabled",
+            target: self,
+            action: #selector(lightsOptionChanged(_:))
+        )
+
+        let row1 = createFlagRow(control: keepDisplayOnCheckbox, flag: "-d")
+        let row2 = createFlagRow(control: preventSystemSleepCheckbox, flag: "-s")
+        let row3 = createFlagRow(control: wakeDisplayCheckbox, flag: "-u")
+
+        let rowsStack = NSStackView(views: [row1, row2, row3])
+        rowsStack.orientation = .vertical
+        rowsStack.alignment = .leading
+        rowsStack.spacing = 8
+
+        let footnoteLabel = createWrappingLabel(
+            "Always prevents idle sleep (-i). No cursor movement, so no Accessibility access needed. Chat apps may show you as Away."
+        )
+        equivalentLabel = createWrappingLabel("")
+
+        let contentStack = NSStackView(views: [rowsStack, footnoteLabel, equivalentLabel])
+        contentStack.orientation = .vertical
+        contentStack.alignment = .leading
+        contentStack.spacing = 12
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+
+        if let contentView = box.contentView {
+            contentView.addSubview(contentStack)
+            NSLayoutConstraint.activate([
+                contentStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+                contentStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+                contentStack.topAnchor.constraint(equalTo: contentView.topAnchor),
+                contentStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+            ])
+        }
+        return box
+    }
+
+    private func createFlagRow(control: NSButton, flag: String) -> NSView {
+        let flagLabel = NSTextField(labelWithString: flag)
+        flagLabel.font = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
+        flagLabel.textColor = .secondaryLabelColor
+
+        let spacer = NSView()
+        spacer.translatesAutoresizingMaskIntoConstraints = false
+
+        let row = NSStackView(views: [control, spacer, flagLabel])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 6
+        row.translatesAutoresizingMaskIntoConstraints = false
+        row.widthAnchor.constraint(equalToConstant: Layout.boxContentWidth).isActive = true
+        return row
+    }
+
+    private static func attributedCheckboxTitle(main: String, secondarySuffix: String) -> NSAttributedString {
+        let font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
+        let result = NSMutableAttributedString(string: main, attributes: [.font: font])
+        result.append(NSAttributedString(
+            string: " " + secondarySuffix,
+            attributes: [.font: font, .foregroundColor: NSColor.secondaryLabelColor]
+        ))
+        return result
+    }
+
+    @objc private func lightsOptionChanged(_ sender: NSButton) {
+        let isOn = sender.state == .on
+        switch sender {
+        case keepDisplayOnCheckbox:
+            Settings.shared.lightsKeepDisplayOn = isOn
+        case preventSystemSleepCheckbox:
+            Settings.shared.lightsPreventSystemSleep = isOn
+        case wakeDisplayCheckbox:
+            Settings.shared.lightsWakeDisplay = isOn
+        default:
+            break
+        }
+    }
+
+    // MARK: - Mode-Dependent UI Sync
+
+    private func subscribeToSettingsChanges() {
+        let settings = Settings.shared
+        Publishers.CombineLatest4(
+            settings.$mode,
+            settings.$lightsKeepDisplayOn,
+            settings.$lightsPreventSystemSleep,
+            settings.$lightsWakeDisplay
+        )
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] mode, keepDisplayOn, preventSystemSleep, wakeDisplay in
+            self?.refreshModeDependentUI(
+                mode: mode,
+                keepDisplayOn: keepDisplayOn,
+                preventSystemSleep: preventSystemSleep,
+                wakeDisplay: wakeDisplay
+            )
+        }
+        .store(in: &cancellables)
+    }
+
+    private func refreshModeDependentUI(
+        mode: KeepAwakeMode,
+        keepDisplayOn: Bool,
+        preventSystemSleep: Bool,
+        wakeDisplay: Bool
+    ) {
+        modeControl.selectedSegment = (mode == .wakey) ? 0 : 1
+        modeDescriptionLabel.stringValue = Self.modeDescription(for: mode)
+
+        keepDisplayOnCheckbox.state = keepDisplayOn ? .on : .off
+        preventSystemSleepCheckbox.state = preventSystemSleep ? .on : .off
+        wakeDisplayCheckbox.state = wakeDisplay ? .on : .off
+
+        let lightsPlan = PowerPlan.make(
+            mode: .lights,
+            keepDisplayOn: keepDisplayOn,
+            preventSystemSleep: preventSystemSleep,
+            wakeDisplay: wakeDisplay
+        )
+        equivalentLabel.stringValue = "Equivalent: " + (lightsPlan.caffeinateEquivalent ?? "")
+
+        applyDimState(for: mode)
+    }
+
+    private func applyDimState(for mode: KeepAwakeMode) {
+        setSection(
+            box: behaviorBox,
+            baseTitle: Layout.jiggleBoxBaseTitle,
+            inactiveSuffix: " \u{00B7} Wakey only",
+            active: mode == .wakey,
+            controls: jiggleControls
+        )
+        setSection(
+            box: lightsBox,
+            baseTitle: Layout.lightsBoxBaseTitle,
+            inactiveSuffix: " \u{00B7} Lights only",
+            active: mode == .lights,
+            controls: lightsControls
+        )
+    }
+
+    /// Dims a section box for the mode it does not apply to.
+    ///
+    /// `NSBox.alphaValue` cannot be used here: its modern "grouped" fill and
+    /// title render through a system material that goes fully transparent
+    /// (not just faded) once the box's own layer opacity drops below 1.0.
+    /// Instead, the box itself stays fully opaque (so its background and
+    /// border draw normally) and only its `contentView` is faded, while the
+    /// title is recolored to secondaryLabelColor via its title cell.
+    private func setSection(box: NSBox, baseTitle: String, inactiveSuffix: String, active: Bool, controls: [NSControl]) {
+        let titleText = active ? baseTitle : baseTitle + inactiveSuffix
+        // Setting `.title` first resets the cell to the box's normal (plain,
+        // full-color) title rendering; only override it for the inactive case.
+        box.title = titleText
+        if !active {
+            (box.titleCell as? NSCell)?.attributedStringValue = NSAttributedString(
+                string: titleText,
+                attributes: [
+                    .font: NSFont.systemFont(ofSize: 12, weight: .semibold),
+                    .foregroundColor: NSColor.secondaryLabelColor
+                ]
+            )
+        }
+        box.contentView?.alphaValue = active ? 1.0 : 0.45
+        for control in controls {
+            control.isEnabled = active
+        }
+
+        // Changing the title string/cell above does not, by itself, invalidate
+        // NSBox's layout: its internal title text field keeps its old frame
+        // (sized for the old text) until something marks the box as needing
+        // layout again. Without this, a live mode change (segment, menu, CLI,
+        // or Restore Defaults) on an already-open window leaves the title
+        // clipped or oddly positioned until the window is closed and reopened.
+        box.needsLayout = true
+    }
+
+    private var jiggleControls: [NSControl] {
+        [idleThresholdField, idleThresholdStepper, minIntervalField, minIntervalStepper, maxIntervalField, maxIntervalStepper]
+    }
+
+    private var lightsControls: [NSControl] {
+        [keepDisplayOnCheckbox, preventSystemSleepCheckbox, wakeDisplayCheckbox]
+    }
+
+    // MARK: - Shared Label Factory
+
+    private func createWrappingLabel(_ text: String, fontSize: CGFloat = 12, color: NSColor = .secondaryLabelColor) -> NSTextField {
+        let label = NSTextField(wrappingLabelWithString: text)
+        label.font = NSFont.systemFont(ofSize: fontSize)
+        label.textColor = color
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.widthAnchor.constraint(equalToConstant: Layout.boxContentWidth).isActive = true
+        return label
     }
 
     // MARK: - Timer Grid
@@ -161,7 +477,10 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
 
         let minLabel = createSmallLabel("min")
 
-        let row = NSStackView(views: [labelView, hoursPicker, hrLabel, minutesPicker, minLabel])
+        let trailingSpacer = NSView()
+        trailingSpacer.translatesAutoresizingMaskIntoConstraints = false
+
+        let row = NSStackView(views: [labelView, hoursPicker, hrLabel, minutesPicker, minLabel, trailingSpacer])
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 6
@@ -184,8 +503,10 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
 
         let idleFieldStack = createStepperField(field: idleThresholdField, stepper: idleThresholdStepper)
         let idleSuffix = createSmallLabel("seconds of idle")
+        let idleTrailingSpacer = NSView()
+        idleTrailingSpacer.translatesAutoresizingMaskIntoConstraints = false
 
-        let idleRow = NSStackView(views: [idleLabel, idleFieldStack, idleSuffix])
+        let idleRow = NSStackView(views: [idleLabel, idleFieldStack, idleSuffix, idleTrailingSpacer])
         idleRow.orientation = .horizontal
         idleRow.alignment = .centerY
         idleRow.spacing = 6
@@ -213,8 +534,10 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
         let maxFieldStack = createStepperField(field: maxIntervalField, stepper: maxIntervalStepper)
 
         let secLabel = createSmallLabel("seconds")
+        let intervalTrailingSpacer = NSView()
+        intervalTrailingSpacer.translatesAutoresizingMaskIntoConstraints = false
 
-        let intervalRow = NSStackView(views: [intervalLabel, minFieldStack, toLabel, maxFieldStack, secLabel])
+        let intervalRow = NSStackView(views: [intervalLabel, minFieldStack, toLabel, maxFieldStack, secLabel, intervalTrailingSpacer])
         intervalRow.orientation = .horizontal
         intervalRow.alignment = .centerY
         intervalRow.spacing = 6
@@ -348,6 +671,14 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
 
         // Behavior
         syncBehaviorUI()
+
+        // Mode + Lights
+        refreshModeDependentUI(
+            mode: settings.mode,
+            keepDisplayOn: settings.lightsKeepDisplayOn,
+            preventSystemSleep: settings.lightsPreventSystemSleep,
+            wakeDisplay: settings.lightsWakeDisplay
+        )
     }
 
     private func selectMinutes(picker: NSPopUpButton, minutes: Int) {

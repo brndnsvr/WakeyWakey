@@ -54,6 +54,7 @@ targets:
     sources:
       - path: wakey
       - path: Shared
+      - path: WakeyWakey/PowerPlan.swift
     settings:
       base:
         ARCHS: arm64
@@ -80,6 +81,8 @@ targets:
       - path: WakeyWakeyTests
       - path: Shared
       - path: WakeyWakey/EnableUntilParser.swift
+      - path: WakeyWakey/PowerPlan.swift
+      - path: WakeyWakey/PowerAssertionController.swift
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

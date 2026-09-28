@@ -5,6 +5,7 @@ protocol CLICommandHandler: AnyObject {
     func cliEnable(duration: TimeInterval?) -> CLIServer.Response
     func cliDisable() -> CLIServer.Response
     func cliStatus() -> CLIServer.Response
+    func cliMode(_ mode: String?) -> CLIServer.Response
 }
 
 /// Listens on a local Mach port for JSON commands from the `wakey` CLI.
@@ -100,6 +101,9 @@ final class CLIServer {
             response = handler.cliDisable()
         case "status":
             response = handler.cliStatus()
+        case "mode":
+            let mode = json["mode"] as? String
+            response = handler.cliMode(mode)
         default:
             response = Response(ok: false, message: "Unknown command: \(command)")
         }

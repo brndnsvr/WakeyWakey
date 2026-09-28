@@ -1,6 +1,6 @@
 # WakeyWakey
 
-A tiny macOS menu bar app that keeps your Mac awake by simulating subtle mouse movements only when you're idle.
+A tiny macOS menu bar app that keeps your Mac awake — jiggle the cursor after you go idle (Wakey), or just hold the power assertions with no simulated input (Lights).
 
 **Website:** [wakeywakey.app](https://wakeywakey.app)
 
@@ -16,7 +16,7 @@ This installs both the menu bar app and the `wakey` CLI.
 
 ### Manual Download
 
-**[Download WakeyWakey v1.3.1](https://github.com/brndnsvr/WakeyWakey/releases/download/v1.3.1/WakeyWakey-1.3.1.dmg)** (macOS 15.0+, Apple Silicon)
+**[Download WakeyWakey v1.4.0](https://github.com/brndnsvr/WakeyWakey/releases/download/v1.4.0/WakeyWakey-1.4.0.dmg)** (macOS 15.0+, Apple Silicon)
 
 Or visit [Releases](https://github.com/brndnsvr/WakeyWakey/releases) for all versions.
 
@@ -26,38 +26,45 @@ Or visit [Releases](https://github.com/brndnsvr/WakeyWakey/releases) for all ver
 ## Getting Started
 
 1. Launch WakeyWakey from Applications
-2. Grant Accessibility permission when prompted (required for mouse movement)
-3. Click the coffee cup icon in your menu bar to enable
+2. In Wakey mode, grant Accessibility permission when prompted (required for the simulated mouse movement); Lights mode needs no Accessibility permission
+3. Click the menu bar icon to enable
 
 ## Features
 
 - **Menu bar only** — no Dock icon, stays out of your way
-- **Smart activation** — only jiggles after idle threshold (default 42 seconds)
-- **Natural movement** — animated multi-waypoint paths that look like real mouse movement
+- **Modes** — Wakey jiggles the cursor after you go idle; Lights holds the same power assertions as `caffeinate -disu` with no simulated input
+- **Smart activation (Wakey)** — only jiggles after idle threshold (default 42 seconds)
+- **Natural movement (Wakey)** — animated multi-waypoint paths that look like real mouse movement
 - **Timer options** — use configurable 1h10m/4h20m/9h presets or enter a clock time such as `5pm` or `5:00`
-- **CLI control** — `wakey enable`, `wakey disable`, `wakey status` from the terminal
-- **Configurable** — adjust timers, idle threshold, and jiggle intervals in Settings
+- **CLI control** — `wakey enable`, `wakey disable`, `wakey status`, `wakey mode` from the terminal
+- **Configurable** — adjust mode, timers, idle threshold, and jiggle intervals in Settings
 - **Launch at Login** — start automatically with your Mac
 - **Multi-monitor support** — cursor stays on the current display
 
 ## Menu Bar Usage
 
-Click the menu bar icon (coffee cup) to access:
+Click the menu bar icon (coffee cup or lightbulb, depending on mode) to access:
 
 | Menu Item | Action |
 |-----------|--------|
-| Enable/Disable | Toggle mouse jiggle on/off |
+| Enable/Disable | Toggle the active mode on/off |
+| Mode: Wakey | Switch to Wakey (cursor jiggle) |
+| Mode: Lights | Switch to Lights (no simulated input) |
 | Enable for 1h10m/4h20m/9h | Auto-disable after set time (configurable) |
 | Enable until | Enter a clock time such as `5pm`, `5:00`, or `5:30pm`, then press Return |
 | Launch at Login | Start with macOS |
-| Settings... | Configure timers, idle threshold, jiggle intervals |
+| Settings... | Configure mode, timers, idle threshold, jiggle intervals |
 | Quit | Exit the app |
 
 **Icon states:**
 
+Wakey uses a coffee cup icon; Lights uses a lightbulb icon. Either icon fills in solid when enabled.
+
 | Disabled | Enabled |
 |:--------:|:-------:|
 | ![Disabled](docs/assets/icon-disabled.png) | ![Enabled](docs/assets/icon-enabled.png) |
+
+Lights mode shows the SF Symbol `lightbulb` when disabled and `lightbulb.fill` when enabled (no separate PNGs are shipped for these; they render from the system symbol like the cup icons above).
 
 ## CLI Usage
 
@@ -69,9 +76,14 @@ wakey enable 2h       # Enable for 2 hours
 wakey enable 90m      # Enable for 90 minutes
 wakey enable 3.5h     # Enable for 3.5 hours
 wakey disable         # Disable
-wakey status          # Show current status
+wakey status          # Show current status (includes the active mode)
+wakey mode            # Show the current mode
+wakey mode wakey      # Switch to Wakey (applies live if enabled)
+wakey mode lights     # Switch to Lights (applies live if enabled)
 wakey --help          # Show help
 ```
+
+`wakey status` reports the mode on its own line, such as `Mode: lights (caffeinate -disu)` or `Mode: wakey`.
 
 Installed automatically via Homebrew, or manually:
 
@@ -82,16 +94,18 @@ cp /Applications/WakeyWakey.app/Contents/MacOS/wakey /usr/local/bin/wakey
 
 ## Permissions
 
-WakeyWakey needs **Accessibility permission** to simulate mouse movement. On first launch, it will open System Settings for you. Grant permission and relaunch.
+**Wakey mode** needs **Accessibility permission** to simulate mouse movement. On first launch, or when switching to Wakey, it will open System Settings for you. Grant permission and relaunch.
 
-If it doesn't work:
+**Lights mode** needs no Accessibility access — it holds power assertions only and posts no simulated input. Chat apps may show you as Away while Lights is enabled.
+
+If Wakey doesn't work:
 1. Go to System Settings → Privacy & Security → Accessibility
 2. Find WakeyWakey and toggle it on
 3. Relaunch the app
 
 ## Troubleshooting
 
-- **App doesn't jiggle** — Wait 42+ seconds without touching mouse/keyboard
+- **App doesn't jiggle** — In Wakey mode, wait 42+ seconds without touching mouse/keyboard. In Lights mode this is expected: Lights never moves the cursor by design; check `pmset -g assertions` for "WakeyWakey Lights" instead.
 - **No menu bar icon** — Make sure you're running from /Applications
 - **CLI says "not running"** — Launch the WakeyWakey app first
 
