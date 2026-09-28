@@ -72,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-monitor support with cursor clamping
 - Center bias (52%) to prevent edge drift
 
+[1.4.0]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.4.0
 [1.3.1]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.3.1
 [1.1.0]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.1.0
 [1.0.2]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.0.2
