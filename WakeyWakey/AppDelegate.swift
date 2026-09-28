@@ -20,8 +20,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         didSet { updateUIForState() }
     }
 
-    // Power management assertion to prevent idle sleep
-    private var powerAssertion: IOPMAssertionID = 0
+    // Power management assertions, driven by settings.powerPlan
+    private let powerController = PowerAssertionController()
+    private var appliedPlan: PowerPlan?  // Plan last applied while enabled; nil when disabled
+    // Mode the power engine last acted on. Tracked even while disabled, so a
+    // change made while disabled is not mistaken for one later.
+    private var lastAppliedMode: KeepAwakeMode = .wakey
     private var powerAssertionFailed = false
     private var warningItem: NSMenuItem?
 
@@ -138,8 +142,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.menu = menu
 
         // Accessibility permission check (for posting CGEvents)
-        // Uses AXIsProcessTrustedWithOptions to auto-open System Settings if needed
-        requestAccessibilityPermissionIfNeeded()
+        // Uses AXIsProcessTrustedWithOptions to auto-open System Settings if needed.
+        // Only Wakey posts events; Lights never prompts.
+        if settings.powerPlan.needsAccessibility {
+            requestAccessibilityPermissionIfNeeded()
+        }
 
         // Start 1s heartbeat to detect idle and schedule actions when enabled
         checkTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
@@ -178,6 +185,64 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self?.updateTimerMenuTitles()
         }
         .store(in: &cancellables)
+
+        // Mode and Lights options → power engine
+        lastAppliedMode = settings.mode
+        Publishers.CombineLatest4(
+            settings.$mode,
+            settings.$lightsKeepDisplayOn,
+            settings.$lightsPreventSystemSleep,
+            settings.$lightsWakeDisplay
+        )
+        .dropFirst()  // Skip initial values
+        // Required before reading settings.powerPlan: @Published emits in
+        // willSet, so a synchronous read would still see the OLD plan
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] _, _, _, _ in
+            self?.powerSettingsChanged()
+        }
+        .store(in: &cancellables)
+    }
+
+    /// Brings the held assertions in line with the current mode and Lights options.
+    private func powerSettingsChanged() {
+        let plan = settings.powerPlan
+        let mode = settings.mode
+        let modeChanged = mode != lastAppliedMode
+        lastAppliedMode = mode
+
+        // Switching into Wakey needs Accessibility again (no-op when trusted)
+        if modeChanged && plan.needsAccessibility {
+            requestAccessibilityPermissionIfNeeded()
+        }
+
+        // Disabled: nothing is held, so nothing to apply
+        guard isEnabled else { return }
+
+        // False only when this exact set is already held (for example, an
+        // enable that ran before this deferred delivery already applied it)
+        let heldSetChanged = appliedPlan?.assertionTypes != plan.assertionTypes
+            || appliedPlan?.assertionName != plan.assertionName
+
+        if modeChanged {
+            if heldSetChanged {
+                applyPowerPlan(plan)  // New assertions before the old are released
+            }
+
+            // Drop any Wakey jiggle state
+            cancelAnimation()
+            nextActivityDueAt = nil
+            lastKnownMousePos = nil
+            lastMouseMoveTime = nil
+
+            // Switching into Lights with -u: declare user activity once
+            if heldSetChanged && plan.declaresUserActivity {
+                powerController.declareUserActivity(name: plan.assertionName)
+            }
+        } else if heldSetChanged {
+            // A Lights option changed what is held. Never re-fire -u here.
+            applyPowerPlan(plan)
+        }
     }
 
     private func updateTimerMenuTitles() {
@@ -289,32 +354,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func beginPreventingSleep() {
-        if powerAssertion == 0 {
-            // Use PreventUserIdleDisplaySleep to prevent both screensaver and display sleep
-            // (NoIdleSleep only prevents system sleep, not screensaver)
-            let result = IOPMAssertionCreateWithName(
-                kIOPMAssertionTypePreventUserIdleDisplaySleep as CFString,
-                IOPMAssertionLevel(kIOPMAssertionLevelOn),
-                "WakeyWakey Active" as CFString,
-                &powerAssertion
-            )
-            if result != kIOReturnSuccess {
-                print("WakeyWakey: Failed to create power assertion (error: \(result))")
-                powerAssertion = 0
-                powerAssertionFailed = true
-            } else {
-                powerAssertionFailed = false
-            }
-            updateWarningMenuItem()
+        // Idempotent: already holding means no duplicate assertions and no second -u
+        guard !powerController.isHolding else { return }
+
+        // Wakey holds PreventUserIdleDisplaySleep "WakeyWakey Active", which stops
+        // both screensaver and display sleep (NoIdleSleep only prevents system sleep).
+        // Lights holds its caffeinate-style set under "WakeyWakey Lights".
+        let plan = settings.powerPlan
+        applyPowerPlan(plan)
+        if plan.declaresUserActivity {
+            powerController.declareUserActivity(name: plan.assertionName)
         }
     }
 
     private func endPreventingSleep() {
-        if powerAssertion != 0 {
-            IOPMAssertionRelease(powerAssertion)
-            powerAssertion = 0
-        }
+        powerController.releaseAll()
+        appliedPlan = nil
         powerAssertionFailed = false
+        updateWarningMenuItem()
+    }
+
+    /// Applies `plan` (new assertions before old are released) and updates the warning item.
+    private func applyPowerPlan(_ plan: PowerPlan) {
+        let failedTypes = powerController.apply(plan)
+        appliedPlan = plan
+
+        // PreventSystemSleep is deprecated and AC-only: log it, never warn
+        if failedTypes.contains(PowerPlan.preventSystemSleep) {
+            print("WakeyWakey: \(PowerPlan.preventSystemSleep) unavailable (deprecated, AC power only); continuing")
+        }
+        powerAssertionFailed = failedTypes.contains { $0 != PowerPlan.preventSystemSleep }
         updateWarningMenuItem()
     }
 
@@ -352,6 +421,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         guard isEnabled else { return }
+
+        // Lights holds power assertions only: no idle detection, no jiggle
+        guard settings.powerPlan.simulatesInput else { return }
 
         // Check if Universal Control might be active by detecting cursor position changes
         // even when no local events are registered

@@ -81,6 +81,7 @@ targets:
       - path: Shared
       - path: WakeyWakey/EnableUntilParser.swift
       - path: WakeyWakey/PowerPlan.swift
+      - path: WakeyWakey/PowerAssertionController.swift
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
