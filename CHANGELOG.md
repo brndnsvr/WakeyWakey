@@ -5,7 +5,7 @@ All notable changes to WakeyWakey will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.4.1] - 2026-09-28
 
 ### Changed
 - The menu bar icon stays the coffee cup in both modes; Lights mode no longer switches it to a lightbulb. The mode is shown in the menu.
@@ -77,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-monitor support with cursor clamping
 - Center bias (52%) to prevent edge drift
 
-[Unreleased]: https://github.com/brndnsvr/WakeyWakey/compare/v1.4.0...HEAD
+[1.4.1]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.4.1
 [1.4.0]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.4.0
 [1.3.1]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.3.1
 [1.1.0]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.1.0
