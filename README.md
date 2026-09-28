@@ -43,7 +43,7 @@ Or visit [Releases](https://github.com/brndnsvr/WakeyWakey/releases) for all ver
 
 ## Menu Bar Usage
 
-Click the menu bar icon (coffee cup or lightbulb, depending on mode) to access:
+Click the menu bar icon (coffee cup) to access:
 
 | Menu Item | Action |
 |-----------|--------|
@@ -58,13 +58,11 @@ Click the menu bar icon (coffee cup or lightbulb, depending on mode) to access:
 
 **Icon states:**
 
-Wakey uses a coffee cup icon; Lights uses a lightbulb icon. Either icon fills in solid when enabled.
+The coffee cup icon is the same in both modes and fills in solid when enabled.
 
 | Disabled | Enabled |
 |:--------:|:-------:|
 | ![Disabled](docs/assets/icon-disabled.png) | ![Enabled](docs/assets/icon-enabled.png) |
-
-Lights mode shows the SF Symbol `lightbulb` when disabled and `lightbulb.fill` when enabled (no separate PNGs are shipped for these; they render from the system symbol like the cup icons above).
 
 ## CLI Usage
 

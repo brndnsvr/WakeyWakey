@@ -223,15 +223,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         .store(in: &cancellables)
 
-        // Mode-driven menu checkmarks and status icon must follow settings.mode
-        // regardless of enabled state and regardless of what powerSettingsChanged()
-        // does (it returns early while disabled). @Published fires in willSet, so
-        // receive(on:) is required before this sink reads the new value.
+        // Mode menu checkmarks must follow settings.mode regardless of enabled
+        // state and regardless of what powerSettingsChanged() does (it returns
+        // early while disabled). @Published fires in willSet, so receive(on:)
+        // is required before this sink reads the new value.
         settings.$mode
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.updateModeMenuState()
-                self?.updateStatusIcon()
             }
             .store(in: &cancellables)
     }
@@ -354,13 +353,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         updateStatusIcon()
     }
 
-    /// Status icon per mode: Wakey uses cup.and.saucer(.fill), Lights uses
-    /// lightbulb(.fill). The filled form means enabled. Follows settings.mode
-    /// from any source, whether or not the app is enabled.
+    /// Status icon: the coffee cup in every mode, filled while enabled. The
+    /// mode is shown in the menu, not in the menu bar.
     private func updateStatusIcon() {
         guard let button = statusItem.button else { return }
-        let baseSymbol = settings.mode == .lights ? "lightbulb" : "cup.and.saucer"
-        let symbol = isEnabled ? "\(baseSymbol).fill" : baseSymbol
+        let symbol = isEnabled ? "cup.and.saucer.fill" : "cup.and.saucer"
         let image = NSImage(systemSymbolName: symbol, accessibilityDescription: "WakeyWakey")
         image?.isTemplate = true
         button.image = image
