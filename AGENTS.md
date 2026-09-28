@@ -2,7 +2,9 @@
 
 ## Project Overview
 
-WakeyWakey is a Swift/AppKit macOS menu bar application that prevents system idle sleep by simulating subtle mouse movements. It runs as a menu bar app with no Dock icon (LSUIElement=true).
+WakeyWakey is a Swift/AppKit macOS menu bar application that keeps the Mac awake. It runs as a menu bar app with no Dock icon (LSUIElement=true), and has two modes:
+- **Wakey** — the original behavior: holds a display-sleep power assertion and simulates subtle mouse movements after the user goes idle. Needs Accessibility permission.
+- **Lights** ("lights on, nobody home") — holds the power assertions of `caffeinate -disu` with no simulated input. Needs no Accessibility permission; chat apps may show you as Away.
 
 **Tech Stack**: Swift, AppKit, IOKit, ServiceManagement, XcodeGen
 **Target**: macOS 15.0+, arm64
@@ -74,6 +76,8 @@ repo root
 │   ├── AppDelegate.swift        # Menu, timers, jiggle animation, power management
 │   ├── CLIServer.swift          # CFMessagePort IPC server for the wakey CLI
 │   ├── Settings.swift           # UserDefaults-backed settings with Combine publishers
+│   ├── PowerPlan.swift          # Pure mapping: mode + Lights options → assertions, caffeinate string
+│   ├── PowerAssertionController.swift  # IOKit wrapper: applies/releases assertions, declares user activity
 │   ├── Settings/
 │   │   ├── SettingsWindowController.swift
 │   │   └── SettingsViewController.swift
@@ -125,8 +129,21 @@ func applicationDidFinishLaunching(_:) {
 
 ### Power Management
 
+`PowerPlan` (pure mapping, no IOKit) describes what each mode holds while enabled; `PowerAssertionController` (IOKit) creates and releases the assertions it describes. `Settings.powerPlan` computes the current plan from `mode` and the three Lights options.
+
+| | Wakey | Lights |
+|---|---|---|
+| Held while enabled | `PreventUserIdleDisplaySleep` | `PreventUserIdleSystemSleep` (always) + `PreventUserIdleDisplaySleep` (if `-d`) + `PreventSystemSleep` (if `-s`) |
+| Assertion name | `WakeyWakey Active` (unchanged) | `WakeyWakey Lights` |
+| One-shot on enable | none | `IOPMAssertionDeclareUserActivity(kIOPMUserActiveLocal)` (if `-u`) |
+| Idle detection + jiggle | yes (unchanged) | none; `tick()` returns early |
+| Accessibility | required | not needed |
+| `caffeinate` equivalent | n/a | `caffeinate -` + `d`? + `i` + `s`? + `u`?; defaults give `-disu` |
+
+`PreventSystemSleep` is used as a raw string, not the SDK's `kIOPMAssertionTypePreventSystemSleep` constant — that constant is deprecated (marked "not supported" since 10.9), even though `caffeinate -s` still creates the assertion and `pmset -g assertions` still reports it.
+
 ```swift
-// Prevent idle sleep AND display sleep (NoIdleSleep only prevents system sleep, not screensaver)
+// Wakey: prevent idle sleep AND display sleep (NoIdleSleep only prevents system sleep, not screensaver)
 IOPMAssertionCreateWithName(
     kIOPMAssertionTypePreventUserIdleDisplaySleep as CFString,
     IOPMAssertionLevel(kIOPMAssertionLevelOn),
@@ -138,14 +155,16 @@ IOPMAssertionCreateWithName(
 IOPMAssertionRelease(powerAssertion)
 ```
 
+A mode switch, or a Lights checkbox change, while enabled creates the new assertion set first and only then releases the old one (`PowerAssertionController.apply(_:)`), so the Mac is never left without an assertion mid-swap.
+
 ## Architecture
 
 ### Lifecycle
 1. `main.swift` → `NSApplication.shared` → `AppDelegate()` → `app.run()`
 2. `AppDelegate.init()` sets `.accessory` policy (no Dock icon)
-3. `applicationDidFinishLaunching`: status item, menu, accessibility check, 1Hz timer
-4. User toggles Enable → create/release IOPM assertion, start/stop scheduling
-5. `tick()` runs every second → idle detection → schedule/perform jiggles
+3. `applicationDidFinishLaunching`: status item, menu, accessibility check (Wakey only), 1Hz timer
+4. User toggles Enable → `PowerAssertionController` applies `settings.powerPlan`, start/stop scheduling
+5. `tick()` runs every second → in Wakey: idle detection → schedule/perform jiggles; in Lights: returns early after the timer-expiry check (no idle detection, no jiggle)
 
 ### Idle Detection
 ```swift
@@ -156,6 +175,7 @@ let idle = types.map { CGEventSource.secondsSinceLastEventType(.hidSystemState, 
 ```
 - Takes minimum across explicit event types (handles DisplayLink/virtual display stacks)
 - Threshold: 42 seconds
+- Wakey only; Lights never runs idle detection or the jiggle
 
 ### Jiggle Animation
 Animated multi-waypoint movement (not instant teleport):
@@ -187,17 +207,19 @@ CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: quar
 ```
 
 ### State Logic
-No explicit state enum — uses `isEnabled` bool + `nextActivityDueAt` date:
+No explicit state enum — uses `isEnabled` bool + `nextActivityDueAt` date, plus `settings.mode`:
 - **Disabled** (`isEnabled == false`): waiting for user to enable
-- **Enabled, user active** (idle < threshold OR mouse moved): cancel any animation, clear schedule
-- **Enabled, just went idle** (`nextActivityDueAt == nil`): jiggle immediately, schedule next
-- **Enabled, waiting** (`nextActivityDueAt` in future): waiting for next scheduled jiggle
-- **Timer expired** (`timerExpiresAt` reached): auto-disable, release power assertion
+- **Enabled, Wakey, user active** (idle < threshold OR mouse moved): cancel any animation, clear schedule
+- **Enabled, Wakey, just went idle** (`nextActivityDueAt == nil`): jiggle immediately, schedule next
+- **Enabled, Wakey, waiting** (`nextActivityDueAt` in future): waiting for next scheduled jiggle
+- **Enabled, Lights**: `tick()` returns after the timer-expiry check; only the held power assertions matter
+- **Mode switch while enabled**: `PowerAssertionController` applies the new plan (new before old), any Wakey jiggle animation is cancelled, `nextActivityDueAt` and mouse-tracking state are reset, and switching into Lights with `-u` on declares user activity once
+- **Timer expired** (`timerExpiresAt` reached): auto-disable, release whichever power assertion set is held
 
 ### Settings System
-`Settings.swift` is a singleton (`Settings.shared`) backed by `UserDefaults` with `@Published` properties and Combine integration. `AppDelegate` subscribes to changes via `Publishers.CombineLatest3` to update menu titles dynamically. Settings UI is in `Settings/SettingsWindowController.swift` and `Settings/SettingsViewController.swift`.
+`Settings.swift` is a singleton (`Settings.shared`) backed by `UserDefaults` with `@Published` properties and Combine integration. `AppDelegate` subscribes to changes via `Publishers.CombineLatest3` to update menu titles dynamically, and via `Publishers.CombineLatest4` on `mode` and the three Lights options to keep the held power assertions in sync (Settings, the menu, and the CLI all write the same `Settings` properties, so every surface stays consistent). Settings UI is in `Settings/SettingsWindowController.swift` and `Settings/SettingsViewController.swift`.
 
-Configurable values: timer durations (3), idle threshold, jiggle interval min/max. All have sensible defaults and a `resetToDefaults()` method.
+Configurable values: `mode` (`KeepAwakeMode`: `.wakey` / `.lights`), the three Lights options (`lightsKeepDisplayOn`, `lightsPreventSystemSleep`, `lightsWakeDisplay`, all default `true`), timer durations (3), idle threshold, jiggle interval min/max. `Settings.powerPlan` derives the current `PowerPlan` from `mode` and the Lights options. All have sensible defaults and a `resetToDefaults()` method, which also resets the mode to Wakey and all three Lights options to on. The Accessibility prompt (`requestAccessibilityPermissionIfNeeded`) runs only in Wakey — at launch, and again when switching into Wakey while not yet trusted.
 
 ### Universal Control Detection
 Tracks mouse position changes between ticks to detect cursor movement from Universal Control (which doesn't register as HID events). If the cursor moved since last check, the user is considered active even if `CGEventSource.secondsSinceLastEventType` shows high idle time.
@@ -279,14 +301,20 @@ State is managed by the system and visible in System Settings → General → Lo
 - [ ] Menu bar icon appears (no Dock icon)
 - [ ] Clicking icon shows menu
 - [ ] Enable/Disable toggle works
-- [ ] Icon changes (cup.and.saucer ↔ cup.and.saucer.fill)
+- [ ] Icon changes (cup.and.saucer ↔ cup.and.saucer.fill in Wakey, lightbulb ↔ lightbulb.fill in Lights)
 - [ ] Timer options (default 1h10m/4h20m/9h, configurable) enable and auto-disable
 - [ ] Launch at Login toggle works (verify in System Settings → Login Items)
-- [ ] Fresh install auto-opens Accessibility settings
-- [ ] Jiggle only happens after 42s idle
+- [ ] Fresh install auto-opens Accessibility settings, in Wakey mode only
+- [ ] Jiggle only happens after 42s idle, in Wakey mode
 - [ ] No jiggle while typing
 - [ ] Multi-monitor: cursor stays on current display
-- [ ] System doesn't sleep while enabled
+- [ ] System doesn't sleep while enabled, in either mode
+- [ ] Wakey enabled: `pmset -g assertions | grep -A1 WakeyWakey` shows one `PreventUserIdleDisplaySleep` named "WakeyWakey Active"
+- [ ] Lights enabled (defaults): `pmset -g assertions | grep -A1 WakeyWakey` shows `PreventUserIdleSystemSleep`, `PreventUserIdleDisplaySleep`, and `PreventSystemSleep`, all named "WakeyWakey Lights"
+- [ ] Lights enabled: no cursor movement over time, and no Accessibility prompt
+- [ ] Switching modes while enabled swaps the assertion set with no gap (new assertions appear before the old ones are released)
+- [ ] Settings: the inactive mode's section is dimmed; the "Equivalent: caffeinate ..." line tracks the checked Lights options
+- [ ] `wakey mode`, `wakey mode wakey`, `wakey mode lights` work, and `wakey status` reports the mode
 
 ## Timings (Defaults — configurable via Settings)
 

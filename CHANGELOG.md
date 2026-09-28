@@ -5,6 +5,19 @@ All notable changes to WakeyWakey will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Lights mode: holds the power assertions of `caffeinate -disu` with no simulated input, for when you want to look present without moving the cursor.
+- Three Lights options — keep the display on (`-d`), prevent system sleep on AC power (`-s`), wake the display when enabled (`-u`) — all on by default; `-i` is always held.
+- "Mode" section in the menu, with Wakey and Lights items and a checkmark on the active mode.
+- Lightbulb menu bar icon (`lightbulb` / `lightbulb.fill`) for Lights mode, alongside the existing coffee cup for Wakey.
+- `wakey mode` CLI command to show or set the mode (`wakey mode wakey` / `wakey mode lights`).
+
+### Changed
+- Settings window layout: a new "Mode" section at the top, a new "Lights Behavior" section with the three checkboxes and a live "Equivalent: caffeinate -disu" line, and both mode sections now full width; the section for the inactive mode is dimmed.
+- The Accessibility permission prompt now appears only in Wakey mode; Lights mode never prompts for it.
+
 ## [1.3.1] - 2026-08-11
 
 ### Added
