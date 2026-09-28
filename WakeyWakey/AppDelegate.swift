@@ -9,6 +9,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var toggleItem: NSMenuItem!
     private var launchAtLoginItem: NSMenuItem!
+    private var wakeyModeItem: NSMenuItem!
+    private var lightsModeItem: NSMenuItem!
 
     // Timer menu items (for dynamic title updates)
     private var timer1Item: NSMenuItem!
@@ -87,12 +89,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         if let button = statusItem.button {
-            let image = NSImage(systemSymbolName: "cup.and.saucer", accessibilityDescription: "WakeyWakey")
-            image?.isTemplate = true
-            button.image = image
             button.target = self
             button.action = #selector(statusItemClicked)
         }
+        updateStatusIcon()
 
         // Menu
         let menu = NSMenu()
@@ -100,6 +100,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         toggleItem.target = self
         menu.addItem(toggleItem)
         menu.addItem(NSMenuItem.separator())
+
+        // Mode section: Wakey (cursor jiggle) vs Lights (power assertions only)
+        menu.addItem(NSMenuItem.sectionHeader(title: "Mode"))
+
+        let wakeyImage = NSImage(systemSymbolName: "cup.and.saucer", accessibilityDescription: nil)
+        wakeyImage?.isTemplate = true
+        wakeyModeItem = NSMenuItem(title: "Wakey", action: #selector(selectWakeyMode), keyEquivalent: "")
+        wakeyModeItem.target = self
+        wakeyModeItem.image = wakeyImage
+        menu.addItem(wakeyModeItem)
+
+        let lightsImage = NSImage(systemSymbolName: "lightbulb", accessibilityDescription: nil)
+        lightsImage?.isTemplate = true
+        lightsModeItem = NSMenuItem(title: "Lights", action: #selector(selectLightsMode), keyEquivalent: "")
+        lightsModeItem.target = self
+        lightsModeItem.image = lightsImage
+        menu.addItem(lightsModeItem)
+
+        menu.addItem(NSMenuItem.separator())
+        updateModeMenuState()
 
         // Timer options (titles update dynamically from settings)
         timer1Item = NSMenuItem(title: "Enable for \(settings.formatDuration(settings.timerDuration1))", action: #selector(enableForTimer1), keyEquivalent: "")
@@ -202,6 +222,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self?.powerSettingsChanged()
         }
         .store(in: &cancellables)
+
+        // Mode-driven menu checkmarks and status icon must follow settings.mode
+        // regardless of enabled state and regardless of what powerSettingsChanged()
+        // does (it returns early while disabled). @Published fires in willSet, so
+        // receive(on:) is required before this sink reads the new value.
+        settings.$mode
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateModeMenuState()
+                self?.updateStatusIcon()
+            }
+            .store(in: &cancellables)
+    }
+
+    /// Reflects `settings.mode` on the Mode menu items' checkmarks.
+    private func updateModeMenuState() {
+        wakeyModeItem.state = settings.mode == .wakey ? .on : .off
+        lightsModeItem.state = settings.mode == .lights ? .on : .off
+    }
+
+    @objc private func selectWakeyMode() {
+        settings.mode = .wakey
+    }
+
+    @objc private func selectLightsMode() {
+        settings.mode = .lights
     }
 
     /// Brings the held assertions in line with the current mode and Lights options.
@@ -305,12 +351,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateUIForState() {
         toggleItem.title = isEnabled ? "Disable" : "Enable"
-        if let button = statusItem.button {
-            let symbol = isEnabled ? "cup.and.saucer.fill" : "cup.and.saucer"
-            let image = NSImage(systemSymbolName: symbol, accessibilityDescription: "WakeyWakey")
-            image?.isTemplate = true
-            button.image = image
-        }
+        updateStatusIcon()
+    }
+
+    /// Status icon per mode: Wakey uses cup.and.saucer(.fill), Lights uses
+    /// lightbulb(.fill). The filled form means enabled. Follows settings.mode
+    /// from any source, whether or not the app is enabled.
+    private func updateStatusIcon() {
+        guard let button = statusItem.button else { return }
+        let baseSymbol = settings.mode == .lights ? "lightbulb" : "cup.and.saucer"
+        let symbol = isEnabled ? "\(baseSymbol).fill" : baseSymbol
+        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: "WakeyWakey")
+        image?.isTemplate = true
+        button.image = image
     }
 
     // MARK: - Accessibility Permission
