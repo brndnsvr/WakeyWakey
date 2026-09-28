@@ -14,13 +14,40 @@ final class PowerAssertionController {
     /// Assertion types held right now, in the order they were created.
     private(set) var heldTypes: [String] = []
 
-    /// ID from the last `IOPMAssertionDeclareUserActivity` call, passed back on
-    /// the next call as IOPMLib.h asks. 0 (kIOPMNullAssertionID) means none yet.
-    /// Never released here: the system times the user-activity assertion out.
+    /// Default lifetime of a user-activity declaration: `caffeinate -u`'s 5 s
+    /// default timeout.
+    static let defaultUserActivityDuration: TimeInterval = 5
+
+    /// ID of the live user-activity assertion, passed back on the next
+    /// declaration as IOPMLib.h asks. 0 (kIOPMNullAssertionID) means none live.
     private var userActivityID: IOPMAssertionID = 0
+
+    /// Pending release of `userActivityID`. The system timeout follows the
+    /// display-sleep setting (never, when it is 0), so release it ourselves.
+    private var pendingUserActivityRelease: DispatchWorkItem?
+
+    private let userActivityDuration: TimeInterval
+    private let declareUserActivityCall: (String, inout IOPMAssertionID) -> IOReturn
+    private let releaseUserActivityCall: (IOPMAssertionID) -> Void
 
     /// Whether any assertion is held.
     var isHolding: Bool { !heldIDs.isEmpty }
+
+    /// The parameters exist so tests can avoid waking the host display;
+    /// the app uses the IOKit defaults.
+    init(
+        userActivityDuration: TimeInterval = PowerAssertionController.defaultUserActivityDuration,
+        declareUserActivity: @escaping (String, inout IOPMAssertionID) -> IOReturn = { name, assertionID in
+            IOPMAssertionDeclareUserActivity(name as CFString, kIOPMUserActiveLocal, &assertionID)
+        },
+        releaseUserActivity: @escaping (IOPMAssertionID) -> Void = { assertionID in
+            _ = IOPMAssertionRelease(assertionID)
+        }
+    ) {
+        self.userActivityDuration = userActivityDuration
+        self.declareUserActivityCall = declareUserActivity
+        self.releaseUserActivityCall = releaseUserActivity
+    }
 
     deinit {
         releaseAll()
@@ -66,7 +93,7 @@ final class PowerAssertionController {
         return failedTypes
     }
 
-    /// Releases every held assertion.
+    /// Releases every held assertion, including a live user-activity one.
     func releaseAll() {
         let oldIDs = heldIDs
         heldIDs = []
@@ -74,25 +101,40 @@ final class PowerAssertionController {
         for assertionID in oldIDs {
             IOPMAssertionRelease(assertionID)
         }
+        releaseUserActivity()
     }
 
-    /// Declares the local user active once (`caffeinate -u`), which powers the
-    /// display on and postpones display sleep up to the Energy Saver setting.
+    /// Declares the local user active (`caffeinate -u`), which powers the
+    /// display on. The declaration is released after `userActivityDuration`
+    /// (5 s, like `caffeinate -u`), or sooner by `releaseAll()`.
     ///
     /// - Returns: `true` when the declaration succeeded.
     @discardableResult
     func declareUserActivity(name: String) -> Bool {
         var assertionID = userActivityID
-        let result = IOPMAssertionDeclareUserActivity(
-            name as CFString,
-            kIOPMUserActiveLocal,
-            &assertionID
-        )
+        let result = declareUserActivityCall(name, &assertionID)
         guard result == kIOReturnSuccess else {
             print("WakeyWakey: Failed to declare user activity (error: \(result))")
             return false
         }
         userActivityID = assertionID
+
+        // A new declaration restarts the clock: drop any earlier pending release
+        pendingUserActivityRelease?.cancel()
+        let release = DispatchWorkItem { [weak self] in
+            self?.releaseUserActivity()
+        }
+        pendingUserActivityRelease = release
+        DispatchQueue.main.asyncAfter(deadline: .now() + userActivityDuration, execute: release)
         return true
+    }
+
+    /// Releases the live user-activity assertion, if any, and cancels its timer.
+    private func releaseUserActivity() {
+        pendingUserActivityRelease?.cancel()
+        pendingUserActivityRelease = nil
+        guard userActivityID != 0 else { return }
+        releaseUserActivityCall(userActivityID)
+        userActivityID = 0
     }
 }

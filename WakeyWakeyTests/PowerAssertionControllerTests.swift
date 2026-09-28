@@ -6,8 +6,8 @@ import IOKit.pwr_mgt
 /// with IOPMCopyAssertionsByProcess. Each test holds assertions only briefly
 /// and tearDown releases everything.
 ///
-/// declareUserActivity is deliberately not called here: it would wake the
-/// host's display.
+/// The real IOPMAssertionDeclareUserActivity is never called here: it would
+/// wake the host's display. The user-activity tests inject fakes instead.
 final class PowerAssertionControllerTests: XCTestCase {
 
     private var controller: PowerAssertionController!
@@ -100,7 +100,94 @@ final class PowerAssertionControllerTests: XCTestCase {
         XCTAssertEqual(controller.heldTypes, [])
     }
 
+    // MARK: - User activity (-u), with fake IOKit calls
+
+    func testReleaseAllReleasesUserActivityImmediately() {
+        let fake = FakeUserActivity()
+        let controller = makeController(fake: fake, duration: 0.2)
+
+        XCTAssertTrue(controller.declareUserActivity(name: "WakeyWakey Lights"))
+        XCTAssertEqual(fake.released, [])
+
+        controller.releaseAll()
+        XCTAssertEqual(fake.released, [101])
+
+        // The pending timed release was cancelled: no second release
+        spinMainRunLoop(for: 0.4)
+        XCTAssertEqual(fake.released, [101])
+    }
+
+    func testUserActivityIsReleasedAfterDuration() {
+        let fake = FakeUserActivity()
+        let controller = makeController(fake: fake, duration: 0.3)
+
+        XCTAssertTrue(controller.declareUserActivity(name: "WakeyWakey Lights"))
+        spinMainRunLoop(for: 0.1)
+        XCTAssertEqual(fake.released, [])
+
+        spinMainRunLoop(for: 0.4)
+        XCTAssertEqual(fake.released, [101])
+
+        // Once released, the next declaration starts fresh instead of passing back a dead ID
+        XCTAssertTrue(controller.declareUserActivity(name: "WakeyWakey Lights"))
+        XCTAssertEqual(fake.passedIn, [0, 0])
+        controller.releaseAll()
+    }
+
+    func testNewDeclarationCancelsPendingRelease() {
+        let fake = FakeUserActivity()
+        let controller = makeController(fake: fake, duration: 0.5)
+
+        XCTAssertTrue(controller.declareUserActivity(name: "WakeyWakey Lights"))  // t = 0
+        spinMainRunLoop(for: 0.3)
+        XCTAssertTrue(controller.declareUserActivity(name: "WakeyWakey Lights"))  // t = 0.3
+        XCTAssertEqual(fake.passedIn, [0, 101], "Live ID must be passed back")
+
+        // Past the first deadline (0.5): its release must have been cancelled
+        spinMainRunLoop(for: 0.35)
+        XCTAssertEqual(fake.released, [])
+
+        // Past the second deadline (0.8): released exactly once
+        spinMainRunLoop(for: 0.4)
+        XCTAssertEqual(fake.released, [101])
+    }
+
     // MARK: - Helpers
+
+    /// Stands in for IOPMAssertionDeclareUserActivity and IOPMAssertionRelease.
+    /// Like powerd, it keeps a live ID that is passed back and issues a new
+    /// one otherwise.
+    private final class FakeUserActivity {
+        private var lastIssuedID: IOPMAssertionID = 100
+        private(set) var passedIn: [IOPMAssertionID] = []
+        private(set) var released: [IOPMAssertionID] = []
+
+        func declare(_ name: String, _ assertionID: inout IOPMAssertionID) -> IOReturn {
+            passedIn.append(assertionID)
+            if assertionID == 0 {
+                lastIssuedID += 1
+                assertionID = lastIssuedID
+            }
+            return kIOReturnSuccess
+        }
+
+        func release(_ assertionID: IOPMAssertionID) {
+            released.append(assertionID)
+        }
+    }
+
+    private func makeController(fake: FakeUserActivity, duration: TimeInterval) -> PowerAssertionController {
+        PowerAssertionController(
+            userActivityDuration: duration,
+            declareUserActivity: { name, assertionID in fake.declare(name, &assertionID) },
+            releaseUserActivity: { assertionID in fake.release(assertionID) }
+        )
+    }
+
+    /// Lets main-queue work (the timed release) run while the test waits.
+    private func spinMainRunLoop(for seconds: TimeInterval) {
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: seconds))
+    }
 
     /// WakeyWakey assertions this process holds, as powerd reports them.
     private func heldAssertions(
