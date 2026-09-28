@@ -25,6 +25,8 @@ COMMANDS:
     enable <dur>    Enable for a duration (e.g., 2h, 90m, 3.5h)
     disable         Disable
     status          Show current status
+    mode            Show the current mode
+    mode <wakey|lights>   Switch modes
 
 OPTIONS:
     --help, -h      Show this help message
@@ -36,6 +38,9 @@ EXAMPLES:
     wakey enable 3.5h
     wakey disable
     wakey status
+    wakey mode
+    wakey mode lights
+    wakey mode wakey
 """
 
 // MARK: - IPC
@@ -108,6 +113,21 @@ case "status":
     let result = sendCommand(["command": "status"])
     print(result.message)
     exit(result.ok ? 0 : 1)
+
+case "mode":
+    if args.count >= 2 {
+        guard let mode = CLIModeArgument.parse(args[1]) else {
+            fputs("Invalid mode: \(args[1]). Use 'wakey' or 'lights'.\n", stderr)
+            exit(1)
+        }
+        let result = sendCommand(["command": "mode", "mode": mode.rawValue])
+        print(result.message)
+        exit(result.ok ? 0 : 1)
+    } else {
+        let result = sendCommand(["command": "mode"])
+        print(result.message)
+        exit(result.ok ? 0 : 1)
+    }
 
 default:
     fputs("Unknown command: \(command). Run 'wakey --help' for usage.\n", stderr)

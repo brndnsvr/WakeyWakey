@@ -920,6 +920,13 @@ extension AppDelegate: CLICommandHandler {
 
         if isEnabled {
             parts.append("Status: enabled")
+        } else {
+            parts.append("Status: disabled")
+        }
+
+        parts.append("Mode: \(modeDescription())")
+
+        if isEnabled {
             if let expiresAt = timerExpiresAt {
                 let remaining = expiresAt.timeIntervalSinceNow
                 if remaining > 0 {
@@ -930,11 +937,31 @@ extension AppDelegate: CLICommandHandler {
             } else {
                 parts.append("Timer: indefinite")
             }
-        } else {
-            parts.append("Status: disabled")
         }
 
         return CLIServer.Response(ok: true, message: parts.joined(separator: "\n"))
+    }
+
+    func cliMode(_ mode: String?) -> CLIServer.Response {
+        guard let mode = mode else {
+            return CLIServer.Response(ok: true, message: "Mode: \(modeDescription())")
+        }
+
+        guard let newMode = CLIModeArgument.parse(mode) else {
+            return CLIServer.Response(ok: false, message: "Invalid mode: \(mode). Use 'wakey' or 'lights'.")
+        }
+
+        settings.mode = newMode
+        return CLIServer.Response(ok: true, message: "Mode set to \(modeDescription())")
+    }
+
+    /// The current mode, plus its live `caffeinate` equivalent in Lights.
+    private func modeDescription() -> String {
+        let plan = settings.powerPlan
+        if let caffeinateEquivalent = plan.caffeinateEquivalent {
+            return "\(settings.mode.rawValue) (\(caffeinateEquivalent))"
+        }
+        return settings.mode.rawValue
     }
 
     private func formatRemaining(_ seconds: TimeInterval) -> String {
