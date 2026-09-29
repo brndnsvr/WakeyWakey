@@ -5,6 +5,15 @@ All notable changes to WakeyWakey will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- WakeyWakey now stays on across restarts, logouts, crashes, and updates. When it reopens (via Launch at Login), it turns back on with the same end time; a timer that ran out while the Mac was off stays off.
+- "Stay on after a restart" setting in a new Startup section of Settings, on by default.
+
+### Changed
+- Quit from the menu now also means "stay off next time"; it clears the saved state so the next launch starts disabled.
+
 ## [1.4.1] - 2026-09-28
 
 ### Changed
@@ -77,6 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-monitor support with cursor clamping
 - Center bias (52%) to prevent edge drift
 
+[Unreleased]: https://github.com/brndnsvr/WakeyWakey/compare/v1.4.1...HEAD
 [1.4.1]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.4.1
 [1.4.0]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.4.0
 [1.3.1]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.3.1

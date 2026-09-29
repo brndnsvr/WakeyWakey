@@ -13,6 +13,8 @@
 		0C2E0C05B4831B2264F8B5E2 /* PowerPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B107ADF252759044F85862 /* PowerPlan.swift */; };
 		0C6D2E40FD3774E553CD64EE /* EnableUntilParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB80D6ACE262FB656E3EAA1F /* EnableUntilParserTests.swift */; };
 		0D02628B0E56F42A4CC5449D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0D64C68669D51B0771B3ED7 /* AppDelegate.swift */; };
+		0E9E380E3F397862856A061C /* EnabledSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E364CA57B87127B03F73B3 /* EnabledSessionTests.swift */; };
+		13B8D8B9487FDED4FDCC90CF /* EnabledSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49B6AF252A4920E06688E12E /* EnabledSession.swift */; };
 		16D9F2AF0EFA90D4BBBC0BC8 /* DurationParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101DFDFC005409DCEAB38237 /* DurationParser.swift */; };
 		191FEA10E3AF0174315F9E1F /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 828A4A94A98F0E83E2A32AFB /* IOKit.framework */; };
 		1C28E1D47D0596094CF5CB42 /* CLIModeArgument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BFD50E3AD452324C560B64 /* CLIModeArgument.swift */; };
@@ -23,6 +25,7 @@
 		5461AD8F95D4BAD886968441 /* DurationParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101DFDFC005409DCEAB38237 /* DurationParser.swift */; };
 		613BBE897A7DC5A945348914 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 342CAC1F8F8BFCF03E6A343A /* SettingsViewController.swift */; };
 		6FF15F4C8BB56F357B07DF14 /* PowerPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B107ADF252759044F85862 /* PowerPlan.swift */; };
+		73EC5C007234E1032351CF2D /* EnabledSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49B6AF252A4920E06688E12E /* EnabledSession.swift */; };
 		757F9C9A478A00118C649EB1 /* PowerPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B107ADF252759044F85862 /* PowerPlan.swift */; };
 		87ED851E4215EE3E24CAC88D /* PowerAssertionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFB9C1138E0818261130A6D0 /* PowerAssertionController.swift */; };
 		921D3E4033EF085ECB1A9F2B /* DurationParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101DFDFC005409DCEAB38237 /* DurationParser.swift */; };
@@ -44,6 +47,7 @@
 		101DFDFC005409DCEAB38237 /* DurationParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationParser.swift; sourceTree = "<group>"; };
 		22A54044F37C4357AE4210DB /* WakeyWakey.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WakeyWakey.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		342CAC1F8F8BFCF03E6A343A /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
+		49B6AF252A4920E06688E12E /* EnabledSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnabledSession.swift; sourceTree = "<group>"; };
 		4E44A496F755D00B2D18880C /* EnableUntilMenuItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnableUntilMenuItemView.swift; sourceTree = "<group>"; };
 		52B107ADF252759044F85862 /* PowerPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerPlan.swift; sourceTree = "<group>"; };
 		65BFD50E3AD452324C560B64 /* CLIModeArgument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIModeArgument.swift; sourceTree = "<group>"; };
@@ -61,6 +65,7 @@
 		C5A806F8615883C35702E707 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		CC9D2243B8DACB27011CF4AF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		CEBAD3A0B21C72020D62F763 /* CLIServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIServer.swift; sourceTree = "<group>"; };
+		D1E364CA57B87127B03F73B3 /* EnabledSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnabledSessionTests.swift; sourceTree = "<group>"; };
 		DFB9C1138E0818261130A6D0 /* PowerAssertionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerAssertionController.swift; sourceTree = "<group>"; };
 		E3DCD8A30059F7035F5B6614 /* EnableUntilParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnableUntilParser.swift; sourceTree = "<group>"; };
 		FE0AD481EB0318A0BF907382 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -121,6 +126,7 @@
 				C0D64C68669D51B0771B3ED7 /* AppDelegate.swift */,
 				B3EA11476323F08F82D96245 /* Assets.xcassets */,
 				CEBAD3A0B21C72020D62F763 /* CLIServer.swift */,
+				49B6AF252A4920E06688E12E /* EnabledSession.swift */,
 				4E44A496F755D00B2D18880C /* EnableUntilMenuItemView.swift */,
 				E3DCD8A30059F7035F5B6614 /* EnableUntilParser.swift */,
 				C5A806F8615883C35702E707 /* main.swift */,
@@ -138,6 +144,7 @@
 			children = (
 				AC366A16608EFDF5BFB28D86 /* CLIModeArgumentTests.swift */,
 				0F37C3352B9066EF92F09EF7 /* DurationParserTests.swift */,
+				D1E364CA57B87127B03F73B3 /* EnabledSessionTests.swift */,
 				BB80D6ACE262FB656E3EAA1F /* EnableUntilParserTests.swift */,
 				A1662C3C06BAE32D9424CE06 /* PowerAssertionControllerTests.swift */,
 				8AB4451BECBC9C6B5A1ACD65 /* PowerPlanTests.swift */,
@@ -293,6 +300,8 @@
 				31E47E71A5824DB3EDE4EC94 /* DurationParserTests.swift in Sources */,
 				E3EC167D15A6C9C6A3AFDF2D /* EnableUntilParser.swift in Sources */,
 				0C6D2E40FD3774E553CD64EE /* EnableUntilParserTests.swift in Sources */,
+				13B8D8B9487FDED4FDCC90CF /* EnabledSession.swift in Sources */,
+				0E9E380E3F397862856A061C /* EnabledSessionTests.swift in Sources */,
 				E9C562DFCD07F47A38B89E49 /* PowerAssertionController.swift in Sources */,
 				E9A5DFAADBF573AB65C71B34 /* PowerAssertionControllerTests.swift in Sources */,
 				0C2E0C05B4831B2264F8B5E2 /* PowerPlan.swift in Sources */,
@@ -321,6 +330,7 @@
 				921D3E4033EF085ECB1A9F2B /* DurationParser.swift in Sources */,
 				D25A470DB3387661C8EA800D /* EnableUntilMenuItemView.swift in Sources */,
 				451D8C082372F597A8466966 /* EnableUntilParser.swift in Sources */,
+				73EC5C007234E1032351CF2D /* EnabledSession.swift in Sources */,
 				87ED851E4215EE3E24CAC88D /* PowerAssertionController.swift in Sources */,
 				757F9C9A478A00118C649EB1 /* PowerPlan.swift in Sources */,
 				2635E293BA42012B491F197F /* Settings.swift in Sources */,

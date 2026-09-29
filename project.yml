@@ -81,6 +81,7 @@ targets:
       - path: WakeyWakeyTests
       - path: Shared
       - path: WakeyWakey/EnableUntilParser.swift
+      - path: WakeyWakey/EnabledSession.swift
       - path: WakeyWakey/PowerPlan.swift
       - path: WakeyWakey/PowerAssertionController.swift
     settings:

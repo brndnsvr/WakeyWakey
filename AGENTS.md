@@ -78,6 +78,7 @@ repo root
 │   ├── Settings.swift           # UserDefaults-backed settings with Combine publishers
 │   ├── PowerPlan.swift          # Pure mapping: mode + Lights options → assertions, caffeinate string
 │   ├── PowerAssertionController.swift  # IOKit wrapper: applies/releases assertions, declares user activity
+│   ├── EnabledSession.swift     # Saved enabled session (indefinite / until Date), resume rules, UserDefaults store
 │   ├── Settings/
 │   │   ├── SettingsWindowController.swift
 │   │   └── SettingsViewController.swift
@@ -248,6 +249,12 @@ No explicit state enum — uses `isEnabled` bool + `nextActivityDueAt` date, plu
 - **Mode switch while enabled**: `PowerAssertionController` applies the new plan (new before old), any Wakey jiggle animation is cancelled, `nextActivityDueAt` and mouse-tracking state are reset, and switching into Lights with `-u` on declares user activity once
 - **Timer expired** (`timerExpiresAt` reached): auto-disable, release whichever power assertion set is held
 
+### Saved Session (Stay On After a Restart)
+`isEnabled` and `timerExpiresAt` both save the live session (`EnabledSession`: `.indefinite` / `.until(Date)`, or nil while disabled) through `EnabledSessionStore` in their `didSet`, so every path that changes them — menu, timers, Enable Until, CLI, timer expiry — persists without extra calls. Keys: `savedSessionEnabled`, `savedSessionExpiresAt`.
+- **Launch**: `resumeSavedSession()` runs after `observeSettingsChanges()`. If `settings.restoreAfterRestart` is on, `EnabledSession.resumable(_:now:)` decides: indefinite resumes, a future end resumes with the same wall-clock end, a past end stays disabled. Anything not resumed is cleared.
+- **Quit from the menu** (`quitFromMenu`) clears the saved session before `NSApp.terminate`, so it means "stay off next time". Any other exit — the quit Apple Event sent at logout/restart, SIGTERM (`kill.sh`), a crash — leaves it, and the next launch resumes.
+- The relaunch itself comes from Launch at Login; nothing new runs before login. Sleep needs no handling: the process keeps running.
+
 ### Settings System
 `Settings.swift` is a singleton (`Settings.shared`) backed by `UserDefaults` with `@Published` properties and Combine integration. Settings UI is in `Settings/SettingsWindowController.swift` and `Settings/SettingsViewController.swift`.
 
@@ -260,7 +267,7 @@ No explicit state enum — uses `isEnabled` bool + `nextActivityDueAt` date, plu
 
 Settings, the menu, and the CLI all write the same `Settings` properties, so every surface stays consistent.
 
-Configurable values: `mode` (`KeepAwakeMode`: `.wakey` / `.lights`), the three Lights options (`lightsKeepDisplayOn`, `lightsPreventSystemSleep`, `lightsWakeDisplay`, all default `true`), timer durations (3), idle threshold, jiggle interval min/max. `Settings.powerPlan` derives the current `PowerPlan` from `mode` and the Lights options. All have sensible defaults and a `resetToDefaults()` method, which also resets the mode to Wakey and all three Lights options to on. The Accessibility prompt (`requestAccessibilityPermissionIfNeeded`) runs only in Wakey — at launch, and again when switching into Wakey while not yet trusted.
+Configurable values: `mode` (`KeepAwakeMode`: `.wakey` / `.lights`), the three Lights options (`lightsKeepDisplayOn`, `lightsPreventSystemSleep`, `lightsWakeDisplay`, all default `true`), `restoreAfterRestart` (default `true`), timer durations (3), idle threshold, jiggle interval min/max. `Settings.powerPlan` derives the current `PowerPlan` from `mode` and the Lights options. All have sensible defaults and a `resetToDefaults()` method, which also resets the mode to Wakey and all three Lights options to on. The Accessibility prompt (`requestAccessibilityPermissionIfNeeded`) runs only in Wakey — at launch, and again when switching into Wakey while not yet trusted.
 
 ### Universal Control Detection
 Tracks mouse position changes between ticks to detect cursor movement from Universal Control (which doesn't register as HID events). If the cursor moved since last check, the user is considered active even if `CGEventSource.secondsSinceLastEventType` shows high idle time.
@@ -356,6 +363,10 @@ State is managed by the system and visible in System Settings → General → Lo
 - [ ] Switching modes while enabled swaps the assertion set with no gap (new assertions appear before the old ones are released)
 - [ ] Settings: the inactive mode's section is dimmed; the "Equivalent: caffeinate ..." line tracks the checked Lights options
 - [ ] `wakey mode`, `wakey mode wakey`, `wakey mode lights` work, and `wakey status` reports the mode
+- [ ] `wakey enable 2h`, then `./scripts/kill.sh` and relaunch: `wakey status` shows enabled with the same end time
+- [ ] Quit event (`osascript -e 'tell application id "com.brndnsvr.WakeyWakey" to quit'`) and relaunch: still enabled
+- [ ] Quit from the menu and relaunch: disabled
+- [ ] Settings → Startup unchecked: a saved session is ignored at launch
 
 ## Timings (Defaults — configurable via Settings)
 
