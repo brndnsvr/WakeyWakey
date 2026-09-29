@@ -35,6 +35,10 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
     private var wakeDisplayCheckbox: NSButton!
     private var equivalentLabel: NSTextField!
 
+    // MARK: - Startup Controls
+
+    private var restoreAfterRestartCheckbox: NSButton!
+
     private var cancellables = Set<AnyCancellable>()
 
     private enum BehaviorLimit {
@@ -115,6 +119,9 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
 
         // Lights Behavior section
         addFullWidthBox(createLightsBox(), to: mainStack)
+
+        // Startup section
+        addFullWidthBox(createStartupBox(), to: mainStack)
 
         // Button container (right-aligned)
         let buttonContainer = NSStackView()
@@ -302,6 +309,43 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
         default:
             break
         }
+    }
+
+    // MARK: - Startup Box
+
+    private func createStartupBox() -> NSBox {
+        let box = createSectionBox(title: "Startup")
+
+        restoreAfterRestartCheckbox = NSButton(
+            checkboxWithTitle: "Stay on after a restart",
+            target: self,
+            action: #selector(restoreAfterRestartChanged(_:))
+        )
+
+        let footnoteLabel = createWrappingLabel(
+            "When WakeyWakey reopens after a restart, logout, crash, or update, it turns back on with the same end time. It reopens on its own only with Launch at Login. Choosing Quit starts it off next time."
+        )
+
+        let contentStack = NSStackView(views: [restoreAfterRestartCheckbox, footnoteLabel])
+        contentStack.orientation = .vertical
+        contentStack.alignment = .leading
+        contentStack.spacing = 8
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+
+        if let contentView = box.contentView {
+            contentView.addSubview(contentStack)
+            NSLayoutConstraint.activate([
+                contentStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+                contentStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+                contentStack.topAnchor.constraint(equalTo: contentView.topAnchor),
+                contentStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+            ])
+        }
+        return box
+    }
+
+    @objc private func restoreAfterRestartChanged(_ sender: NSButton) {
+        Settings.shared.restoreAfterRestart = sender.state == .on
     }
 
     // MARK: - Mode-Dependent UI Sync
@@ -671,6 +715,9 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
 
         // Behavior
         syncBehaviorUI()
+
+        // Startup
+        restoreAfterRestartCheckbox.state = settings.restoreAfterRestart ? .on : .off
 
         // Mode + Lights
         refreshModeDependentUI(

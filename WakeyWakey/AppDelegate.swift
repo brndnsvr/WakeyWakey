@@ -19,7 +19,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var enableUntilMenuView: EnableUntilMenuItemView!
 
     private var isEnabled = false {
-        didSet { updateUIForState() }
+        didSet {
+            updateUIForState()
+            saveSession()
+        }
     }
 
     // Power management assertions, driven by settings.powerPlan
@@ -34,7 +37,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // Idle/activity scheduling
     private var checkTimer: Timer?
     private var nextActivityDueAt: Date?
-    private var timerExpiresAt: Date?  // For timed enable sessions
+    // For timed enable sessions. When disabling, set isEnabled = false before
+    // clearing this, so no intermediate save records an indefinite session.
+    private var timerExpiresAt: Date? {
+        didSet { saveSession() }
+    }
+
+    // Last enabled session, kept on disk for resuming after a restart
+    private let sessionStore = EnabledSessionStore()
 
     // Settings reference and Combine subscriptions
     private let settings = Settings.shared
@@ -158,7 +168,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(settingsItem)
 
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        let quitItem = NSMenuItem(title: "Quit", action: #selector(quitFromMenu), keyEquivalent: "q")
+        quitItem.target = self
+        menu.addItem(quitItem)
         statusItem.menu = menu
 
         // Accessibility permission check (for posting CGEvents)
@@ -176,8 +188,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Observe settings changes to update timer menu titles
         observeSettingsChanges()
 
+        // Pick up where a restart, logout, crash, or upgrade left off
+        resumeSavedSession()
+
         // Start CLI IPC server
         cliServer = CLIServer(handler: self)
+    }
+
+    /// Quit from the menu means "stop": forget the session so the next launch
+    /// starts disabled. Every other exit (restart, logout, crash, kill) keeps it.
+    @objc private func quitFromMenu() {
+        sessionStore.save(nil)
+        NSApp.terminate(nil)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -309,8 +331,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func toggleEnabled() {
-        timerExpiresAt = nil  // Clear any active timer on manual toggle
         isEnabled.toggle()
+        timerExpiresAt = nil  // Clear any active timer on manual toggle
         if isEnabled {
             beginPreventingSleep()
         } else {
@@ -345,6 +367,43 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if !isEnabled {
             isEnabled = true
             beginPreventingSleep()
+        }
+    }
+
+    private func enableIndefinitely() {
+        timerExpiresAt = nil
+        if !isEnabled {
+            isEnabled = true
+            beginPreventingSleep()
+        }
+    }
+
+    // MARK: - Saved Session
+
+    /// The live session: nil while disabled.
+    private var currentSession: EnabledSession? {
+        guard isEnabled else { return nil }
+        return timerExpiresAt.map(EnabledSession.until) ?? .indefinite
+    }
+
+    private func saveSession() {
+        sessionStore.save(currentSession)
+    }
+
+    /// Re-enables the saved session if Settings allows it and it hasn't ended.
+    private func resumeSavedSession() {
+        let saved = settings.restoreAfterRestart ? sessionStore.load() : nil
+        switch EnabledSession.resumable(saved, now: Date()) {
+        case .indefinite:
+            print("WakeyWakey: resuming saved session (indefinite)")
+            enableIndefinitely()
+        case .until(let end):
+            print("WakeyWakey: resuming saved session until \(end)")
+            enable(until: end)
+        case nil:
+            // Drop a session that ended while the Mac was off, or one the
+            // setting says to ignore, so it can't come back later
+            saveSession()
         }
     }
 
@@ -461,12 +520,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func tick() {
         // Check if timer expired
         if let expiresAt = timerExpiresAt, Date() >= expiresAt {
-            timerExpiresAt = nil
             if isEnabled {
                 isEnabled = false
                 endPreventingSleep()
                 nextActivityDueAt = nil
             }
+            timerExpiresAt = nil
             return
         }
 
@@ -893,22 +952,18 @@ extension AppDelegate: CLICommandHandler {
             enableForDuration(duration)
             return CLIServer.Response(ok: true, message: "Enabled for \(settings.formatDuration(duration))")
         } else {
-            timerExpiresAt = nil
-            if !isEnabled {
-                isEnabled = true
-                beginPreventingSleep()
-            }
+            enableIndefinitely()
             return CLIServer.Response(ok: true, message: "Enabled")
         }
     }
 
     func cliDisable() -> CLIServer.Response {
-        timerExpiresAt = nil
         if isEnabled {
             isEnabled = false
             endPreventingSleep()
             nextActivityDueAt = nil
         }
+        timerExpiresAt = nil
         return CLIServer.Response(ok: true, message: "Disabled")
     }
 

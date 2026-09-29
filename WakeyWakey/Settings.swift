@@ -20,6 +20,7 @@ final class Settings: ObservableObject {
         case lightsKeepDisplayOn
         case lightsPreventSystemSleep
         case lightsWakeDisplay
+        case restoreAfterRestart
     }
 
     // MARK: - Defaults
@@ -35,6 +36,7 @@ final class Settings: ObservableObject {
         static let lightsKeepDisplayOn = true       // caffeinate -d
         static let lightsPreventSystemSleep = true  // caffeinate -s
         static let lightsWakeDisplay = true         // caffeinate -u
+        static let restoreAfterRestart = true
     }
 
     // MARK: - Storage
@@ -104,6 +106,14 @@ final class Settings: ObservableObject {
         didSet { defaults.set(lightsWakeDisplay, forKey: Key.lightsWakeDisplay.rawValue) }
     }
 
+    // MARK: - Restart
+
+    /// Resume the enabled session (and its timer) when WakeyWakey relaunches
+    /// after a restart, logout, crash, or upgrade.
+    @Published var restoreAfterRestart: Bool {
+        didSet { defaults.set(restoreAfterRestart, forKey: Key.restoreAfterRestart.rawValue) }
+    }
+
     // MARK: - Computed Properties
 
     /// What the current mode and Lights options hold while enabled
@@ -154,6 +164,8 @@ final class Settings: ObservableObject {
             ?? Default.lightsPreventSystemSleep
         self.lightsWakeDisplay = defaults.object(forKey: Key.lightsWakeDisplay.rawValue) as? Bool
             ?? Default.lightsWakeDisplay
+        self.restoreAfterRestart = defaults.object(forKey: Key.restoreAfterRestart.rawValue) as? Bool
+            ?? Default.restoreAfterRestart
     }
 
     // MARK: - Helpers
@@ -186,5 +198,6 @@ final class Settings: ObservableObject {
         lightsKeepDisplayOn = Default.lightsKeepDisplayOn
         lightsPreventSystemSleep = Default.lightsPreventSystemSleep
         lightsWakeDisplay = Default.lightsWakeDisplay
+        restoreAfterRestart = Default.restoreAfterRestart
     }
 }
