@@ -79,9 +79,11 @@ repo root
 │   ├── PowerPlan.swift          # Pure mapping: mode + Lights options → assertions, caffeinate string
 │   ├── PowerAssertionController.swift  # IOKit wrapper: applies/releases assertions, declares user activity
 │   ├── EnabledSession.swift     # Saved enabled session (indefinite / until Date), resume rules, UserDefaults store
+│   ├── Schedule.swift           # Weekly schedule: blocks, calendar resolution, ScheduleDriver (Foundation only)
 │   ├── Settings/
 │   │   ├── SettingsWindowController.swift
-│   │   └── SettingsViewController.swift
+│   │   ├── SettingsViewController.swift
+│   │   └── ScheduleSection.swift    # Schedule section: week strip, block rows
 │   ├── Assets.xcassets          # App icon
 │   └── Resources/Info.plist     # LSUIElement=true
 ├── wakey/
@@ -249,6 +251,15 @@ No explicit state enum — uses `isEnabled` bool + `nextActivityDueAt` date, plu
 - **Mode switch while enabled**: `PowerAssertionController` applies the new plan (new before old), any Wakey jiggle animation is cancelled, `nextActivityDueAt` and mouse-tracking state are reset, and switching into Lights with `-u` on declares user activity once
 - **Timer expired** (`timerExpiresAt` reached): auto-disable, release whichever power assertion set is held
 
+### Weekly Schedule
+`Schedule.swift` is Foundation-only and unit-tested. `WeeklySchedule` resolves the enabled `ScheduleBlock`s against the calendar: wall-clock start and end (an end at or before the start runs past midnight), and where runs overlap the latest start wins (ties: further down the list). `ScheduleDriver.evaluate` returns `.enable(mode)`, `.switchMode(mode)`, `.disable`, or `.none`.
+- `AppDelegate.applySchedule()` runs at launch (after `resumeSavedSession()`) and from `tick()` after the timer-expiry check.
+- `enabledBySchedule` records who turned WakeyWakey on. The schedule disables only what it enabled; every user enable path (toggle, timers, Enable Until, CLI, resume) clears it and so takes over until it ends.
+- A manual off (menu toggle, `wakey disable`) calls `skipRunning`, skipping every run covering that moment, including a long block under a nested one, until a new block starts.
+- A block's mode applies once per run, so a mode picked mid-block sticks until the next switch. `Settings.applyScheduledMode(_:)` remembers the replaced mode in `modeBeforeSchedule` (persisted); `restoreModeBeforeSchedule()` puts it back once WakeyWakey is off with no block in charge. A user mode change clears it.
+- `currentSession` is nil while `enabledBySchedule`, so a schedule-driven session is never saved; the schedule re-enables itself at launch if its block is still running.
+- The menu's `Schedule:` line and `wakey status` use `ScheduleText.summary`.
+
 ### Saved Session (Stay On After a Restart)
 `isEnabled` and `timerExpiresAt` both save the live session (`EnabledSession`: `.indefinite` / `.until(Date)`, or nil while disabled) through `EnabledSessionStore` in their `didSet`, so every path that changes them — menu, timers, Enable Until, CLI, timer expiry — persists without extra calls. Keys: `savedSessionEnabled`, `savedSessionExpiresAt`.
 - **Launch**: `resumeSavedSession()` runs after `observeSettingsChanges()`. If `settings.restoreAfterRestart` is on, `EnabledSession.resumable(_:now:)` decides: indefinite resumes, a future end resumes with the same wall-clock end, a past end stays disabled. Anything not resumed is cleared.
@@ -267,7 +278,9 @@ No explicit state enum — uses `isEnabled` bool + `nextActivityDueAt` date, plu
 
 Settings, the menu, and the CLI all write the same `Settings` properties, so every surface stays consistent.
 
-Configurable values: `mode` (`KeepAwakeMode`: `.wakey` / `.lights`), the three Lights options (`lightsKeepDisplayOn`, `lightsPreventSystemSleep`, `lightsWakeDisplay`, all default `true`), `restoreAfterRestart` (default `true`), timer durations (3), idle threshold, jiggle interval min/max. `Settings.powerPlan` derives the current `PowerPlan` from `mode` and the Lights options. All have sensible defaults and a `resetToDefaults()` method, which also resets the mode to Wakey and all three Lights options to on. The Accessibility prompt (`requestAccessibilityPermissionIfNeeded`) runs only in Wakey — at launch, and again when switching into Wakey while not yet trusted.
+For Settings UI work, run the **WakeyWakey Settings** scheme (`WAKEY_SETTINGS_ONLY=1`): it shows only the Settings window on a scratch preferences domain (`com.brndnsvr.WakeyWakey.previews`, seeded with the example schedule) and quits when the window closes, so it runs beside the installed app. Xcode previews (`#Preview` in `SettingsViewController.swift`) use the same scratch domain and skip the status item, CLI server, and session restore.
+
+Configurable values: `mode` (`KeepAwakeMode`: `.wakey` / `.lights`), the three Lights options (`lightsKeepDisplayOn`, `lightsPreventSystemSleep`, `lightsWakeDisplay`, all default `true`), `restoreAfterRestart` (default `true`), timer durations (3), idle threshold, jiggle interval min/max, `scheduleEnabled` (default `false`) and `scheduleBlocks` (JSON, default empty). `Settings.powerPlan` derives the current `PowerPlan` from `mode` and the Lights options. All have sensible defaults and a `resetToDefaults()` method, which also resets the mode to Wakey and all three Lights options to on, and turns the schedule off while keeping its blocks. The Accessibility prompt (`requestAccessibilityPermissionIfNeeded`) runs only in Wakey — at launch, and again when switching into Wakey while not yet trusted.
 
 ### Universal Control Detection
 Tracks mouse position changes between ticks to detect cursor movement from Universal Control (which doesn't register as HID events). If the cursor moved since last check, the user is considered active even if `CGEventSource.secondsSinceLastEventType` shows high idle time.
