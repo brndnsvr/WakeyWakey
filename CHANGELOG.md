@@ -5,7 +5,7 @@ All notable changes to WakeyWakey will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.6.0] - 2026-09-30
 
 ### Added
 - Weekly schedule in Settings: blocks with days, start and end times in 5-minute steps, and a mode, over a week-at-a-glance strip. WakeyWakey turns on at a block's start and off at its end (only what the schedule turned on), a manual off skips the rest of the block, your own Enable or timers run to their end, and a later start wins where blocks overlap.
@@ -97,6 +97,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-monitor support with cursor clamping
 - Center bias (52%) to prevent edge drift
 
+[1.6.0]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.6.0
 [1.5.0]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.5.0
 [1.4.1]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.4.1
 [1.4.0]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.4.0
