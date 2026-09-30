@@ -66,6 +66,13 @@ final class AccessibilityPermissionWindowController: NSWindowController {
             color: .labelColor
         )
 
+        // The two ways the steps above fail: macOS didn't list the app, or the
+        // list says on while this copy of the app is still untrusted
+        let helpLabel = wrappingLabel(
+            "Not in the list? Click + and choose WakeyWakey from Applications. Already on? Switch it off and back on.",
+            size: 12
+        )
+
         spinner = NSProgressIndicator()
         spinner.style = .spinning
         spinner.controlSize = .small
@@ -85,12 +92,13 @@ final class AccessibilityPermissionWindowController: NSWindowController {
         statusRow.alignment = .centerY
         statusRow.spacing = 6
 
-        let textStack = NSStackView(views: [titleLabel, bodyLabel, stepsLabel, statusRow])
+        let textStack = NSStackView(views: [titleLabel, bodyLabel, stepsLabel, helpLabel, statusRow])
         textStack.orientation = .vertical
         textStack.alignment = .leading
         textStack.spacing = 10
-        textStack.setCustomSpacing(14, after: stepsLabel)
-        for label in [titleLabel, bodyLabel, stepsLabel] {
+        textStack.setCustomSpacing(6, after: stepsLabel)
+        textStack.setCustomSpacing(14, after: helpLabel)
+        for label in [titleLabel, bodyLabel, stepsLabel, helpLabel] {
             label.translatesAutoresizingMaskIntoConstraints = false
             label.widthAnchor.constraint(equalToConstant: Layout.textWidth).isActive = true
         }
@@ -133,9 +141,9 @@ final class AccessibilityPermissionWindowController: NSWindowController {
         window?.setContentSize(contentView.fittingSize)
     }
 
-    private func wrappingLabel(_ text: String, color: NSColor = .secondaryLabelColor) -> NSTextField {
+    private func wrappingLabel(_ text: String, size: CGFloat = 13, color: NSColor = .secondaryLabelColor) -> NSTextField {
         let label = NSTextField(wrappingLabelWithString: text)
-        label.font = NSFont.systemFont(ofSize: 13)
+        label.font = NSFont.systemFont(ofSize: size)
         label.textColor = color
         return label
     }
