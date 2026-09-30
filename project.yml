@@ -85,6 +85,7 @@ targets:
       - path: WakeyWakey/PowerPlan.swift
       - path: WakeyWakey/PowerAssertionController.swift
       - path: WakeyWakey/Schedule.swift
+      - path: WakeyWakey/JiggleScheduler.swift
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

@@ -42,7 +42,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Idle/activity scheduling
     private var checkTimer: Timer?
-    private var nextActivityDueAt: Date?
+    private var jiggleScheduler = JiggleScheduler()
     // For timed enable sessions. When disabling, set isEnabled = false before
     // clearing this, so no intermediate save records an indefinite session.
     private var timerExpiresAt: Date? {
@@ -82,10 +82,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         static let maxTotalDistance: CGFloat = 35
         static let maxDeviationDegrees: CGFloat = 22
         static let centerBiasProbability: Int = 52
-
-        // Mouse movement detection thresholds
-        static let mouseMovementThreshold: CGFloat = 0.5    // Pixels to consider "moved"
-        static let recentMovementWindow: TimeInterval = 2.0 // Seconds to track continuous movement
     }
 
     private enum PathType {
@@ -334,9 +330,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             // Drop any Wakey jiggle state
             cancelAnimation()
-            nextActivityDueAt = nil
-            lastKnownMousePos = nil
-            lastMouseMoveTime = nil
+            jiggleScheduler.reset()
 
             // Switching into Lights with -u: declare user activity once
             if heldSetChanged && plan.declaresUserActivity {
@@ -378,7 +372,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             beginPreventingSleep()
         } else {
             endPreventingSleep()
-            nextActivityDueAt = nil
+            jiggleScheduler.reset()
         }
     }
 
@@ -482,7 +476,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             isEnabled = false
             enabledBySchedule = false
             endPreventingSleep()
-            nextActivityDueAt = nil
+            jiggleScheduler.reset()
         }
 
         // Off, with no block in charge: put back the mode a block replaced
@@ -725,7 +719,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if isEnabled {
                 isEnabled = false
                 endPreventingSleep()
-                nextActivityDueAt = nil
+                jiggleScheduler.reset()
             }
             timerExpiresAt = nil
             return
@@ -738,100 +732,41 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Lights holds power assertions only: no idle detection, no jiggle
         guard settings.powerPlan.simulatesInput else { return }
 
-        // Check if Universal Control might be active by detecting cursor position changes
-        // even when no local events are registered
-        let currentMousePos = NSEvent.mouseLocation
-        if hasMouseMovedSinceLastCheck(currentPos: currentMousePos) {
-            // Mouse has moved, consider user active even if no HID events
-            // Cancel any in-progress animation
-            if isAnimating { cancelAnimation() }
-            nextActivityDueAt = nil
-            return
-        }
-
-        // Determine seconds since last user input event
-        // Take the minimum across explicit keyboard and mouse event types for robustness
-        let eventTypes: [CGEventType] = [
-            .mouseMoved, .leftMouseDown, .leftMouseDragged,
+        // Seconds since the last input event, by kind. Mouse moves are kept
+        // apart because a jiggle is one; nothing else here is ever posted by us.
+        let otherInputTypes: [CGEventType] = [
+            .leftMouseDown, .leftMouseDragged,
             .rightMouseDown, .rightMouseDragged,
             .otherMouseDown, .otherMouseDragged,
             .scrollWheel, .keyDown, .keyUp, .flagsChanged
         ]
-        let idle = eventTypes
+        let otherInputIdle = otherInputTypes
             .map { CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: $0) }
             .min() ?? 0.0
 
-        if idle < settings.idleThreshold {
-            // User has been active recently; reset schedule so we fire immediately after next threshold
-            // Cancel any in-progress animation
+        // The cursor position catches Universal Control, which moves the
+        // cursor without any event this Mac registers
+        let sample = JiggleScheduler.Sample(
+            uptime: ProcessInfo.processInfo.systemUptime,
+            mouseMoveIdle: CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: .mouseMoved),
+            otherInputIdle: otherInputIdle,
+            cursor: NSEvent.mouseLocation,
+            isAnimating: isAnimating
+        )
+
+        let action = jiggleScheduler.evaluate(
+            sample,
+            idleThreshold: settings.idleThreshold,
+            nextInterval: { self.settings.randomJiggleInterval }
+        )
+        switch action {
+        case .wait:
+            break
+        case .userActive:
             if isAnimating { cancelAnimation() }
-            nextActivityDueAt = nil
-            return
-        }
-
-        // We are past the idle threshold
-        let now = Date()
-        if nextActivityDueAt == nil {
-            // First time past the threshold → perform immediately
+        case .jiggle:
             performActivity()
-            scheduleNextActivity(afterNow: now)
-            return
         }
-
-        if let due = nextActivityDueAt, now >= due {
-            performActivity()
-            scheduleNextActivity(afterNow: now)
-        }
-    }
-
-    // Track mouse position to detect Universal Control movement
-    private var lastKnownMousePos: CGPoint?
-    private var lastMouseMoveTime: Date?
-
-    private func hasMouseMovedSinceLastCheck(currentPos: CGPoint) -> Bool {
-        defer {
-            lastKnownMousePos = currentPos
-        }
-
-        guard let lastPos = lastKnownMousePos else {
-            // First check, store position
-            return false
-        }
-
-        // Check if mouse position has changed
-        let threshold = AnimationConfig.mouseMovementThreshold
-        let moved = abs(currentPos.x - lastPos.x) > threshold || abs(currentPos.y - lastPos.y) > threshold
-
-        if moved {
-            let now = Date()
-            // If mouse moved, check if it's recent movement
-            // This helps distinguish between our own jiggle movements and actual user movement
-            if let lastMoveTime = lastMouseMoveTime {
-                let timeSinceLastMove = now.timeIntervalSince(lastMoveTime)
-                if timeSinceLastMove < AnimationConfig.recentMovementWindow {
-                    // Recent continuous movement, likely user activity
-                    lastMouseMoveTime = now
-                    return true
-                }
-            }
-            lastMouseMoveTime = now
-            return true
-        }
-
-        // Check if we've been still too long (reset movement tracking after idle period)
-        if let lastMoveTime = lastMouseMoveTime {
-            let timeSinceLastMove = Date().timeIntervalSince(lastMoveTime)
-            if timeSinceLastMove > settings.idleThreshold {
-                lastMouseMoveTime = nil
-            }
-        }
-
-        return false
-    }
-
-    private func scheduleNextActivity(afterNow now: Date) {
-        let interval = settings.randomJiggleInterval
-        nextActivityDueAt = now.addingTimeInterval(interval)
     }
 
     private func performActivity() {
@@ -1093,6 +1028,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 // Post the mouse move event
                 if let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: waypoint, mouseButton: .left) {
                     move.post(tap: .cghidEventTap)
+                    self.jiggleScheduler.noteOwnMove(at: ProcessInfo.processInfo.systemUptime)
                 }
 
                 // Mark animation complete after last waypoint
@@ -1143,6 +1079,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         if let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: newQuartz, mouseButton: .left) {
             move.post(tap: .cghidEventTap)
+            jiggleScheduler.noteOwnMove(at: ProcessInfo.processInfo.systemUptime)
         }
     }
 }
@@ -1168,7 +1105,7 @@ extension AppDelegate: CLICommandHandler {
             enabledBySchedule = false
             isEnabled = false
             endPreventingSleep()
-            nextActivityDueAt = nil
+            jiggleScheduler.reset()
         }
         timerExpiresAt = nil
         return CLIServer.Response(ok: true, message: "Disabled")
