@@ -121,14 +121,15 @@ Sleep needs none of this: WakeyWakey keeps running while the Mac sleeps, so its 
 
 ## Permissions
 
-**Wakey mode** needs **Accessibility permission** to simulate mouse movement. On first launch, or when switching to Wakey, it will open System Settings for you. Grant permission and relaunch.
+**Wakey mode** needs **Accessibility permission** to simulate mouse movement. Whenever Wakey is in use without it (first launch, a switch to Wakey, or a scheduled Wakey block), macOS asks, and WakeyWakey keeps its own window on screen until you grant the permission or choose **Use Lights Instead**. The window closes by itself once the permission is granted, and the menu shows a warning line until then.
 
 **Lights mode** needs no Accessibility access — it holds power assertions only and posts no simulated input. Chat apps may show you as Away while Lights is enabled.
 
-If Wakey doesn't work:
+If Wakey doesn't move the cursor:
 1. Go to System Settings → Privacy & Security → Accessibility
-2. Find WakeyWakey and toggle it on
-3. Relaunch the app
+2. Find WakeyWakey and toggle it on. If it isn't listed, click **+** and choose it from Applications
+3. If it's already on but WakeyWakey still asks, click **Reset and ask again** in its window, then turn it on again. (The list can stay "on" for an older copy of the app.)
+4. If the cursor still doesn't move after a minute idle, quit and reopen WakeyWakey
 
 ## Troubleshooting
 

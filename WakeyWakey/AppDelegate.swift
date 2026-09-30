@@ -34,6 +34,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var powerAssertionFailed = false
     private var warningItem: NSMenuItem?
 
+    // Accessibility permission, which only Wakey needs. While it is missing,
+    // a window and a menu line stay up.
+    private var accessibilityMissing = false
+    private var accessibilityWindowController: AccessibilityPermissionWindowController?
+    private var accessibilityItem: NSMenuItem?
+
     // Idle/activity scheduling
     private var checkTimer: Timer?
     private var nextActivityDueAt: Date?
@@ -199,13 +205,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(quitItem)
         statusItem.menu = menu
 
-        // Accessibility permission check (for posting CGEvents)
-        // Uses AXIsProcessTrustedWithOptions to auto-open System Settings if needed.
-        // Only Wakey posts events; Lights never prompts.
-        if settings.powerPlan.needsAccessibility {
-            requestAccessibilityPermissionIfNeeded()
-        }
-
         // Start 1s heartbeat to detect idle and schedule actions when enabled
         checkTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.tick()
@@ -219,6 +218,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Then let the schedule turn on if a block is running
         applySchedule()
+
+        // Wakey posts CGEvents, which needs Accessibility: ask, and keep the
+        // request on screen until it's granted. Lights never asks.
+        updateAccessibilityState()
 
         // Start CLI IPC server
         cliServer = CLIServer(handler: self)
@@ -311,9 +314,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let modeChanged = mode != lastAppliedMode
         lastAppliedMode = mode
 
-        // Switching into Wakey needs Accessibility again (no-op when trusted)
-        if modeChanged && plan.needsAccessibility {
-            requestAccessibilityPermissionIfNeeded()
+        // Switching modes changes whether Accessibility is needed
+        if modeChanged {
+            updateAccessibilityState()
         }
 
         // Disabled: nothing is held, so nothing to apply
@@ -527,15 +530,108 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Accessibility Permission
 
-    private func requestAccessibilityPermissionIfNeeded() {
-        if !AXIsProcessTrusted() {
-            // Log version for debugging permission issues across updates
-            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
-            print("WakeyWakey v\(version): Requesting Accessibility permission")
+    /// Wakey can't move the cursor without the Accessibility permission, and
+    /// nothing else on screen would say so. While it is missing, keep a window
+    /// and a menu line up until it is granted or the mode changes to Lights.
+    /// Runs every tick: the grant happens in System Settings, and macOS sends
+    /// no notification for it.
+    private func updateAccessibilityState() {
+        let needed = settings.powerPlan.needsAccessibility
+        let missing = needed && !AXIsProcessTrusted()
+        guard missing != accessibilityMissing else { return }
+        accessibilityMissing = missing
 
-            // Prompt user by opening System Settings → Accessibility automatically
-            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-            _ = AXIsProcessTrustedWithOptions(options)
+        if missing {
+            requestAccessibilityPermission()
+            showAccessibilityWindow()
+        } else {
+            if needed {
+                accessibilityWindowController?.showGrantedThenClose()
+            } else {
+                accessibilityWindowController?.close()
+            }
+            accessibilityWindowController = nil
+        }
+        updateAccessibilityMenuItem()
+    }
+
+    /// Asks macOS for the permission. This is what adds WakeyWakey to the
+    /// Accessibility list in System Settings; it also shows the system's alert.
+    private func requestAccessibilityPermission() {
+        // Log version for debugging permission issues across updates
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        print("WakeyWakey v\(version): Requesting Accessibility permission")
+
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(options)
+    }
+
+    @objc private func showAccessibilityWindow() {
+        if accessibilityWindowController == nil {
+            let controller = AccessibilityPermissionWindowController()
+            controller.onOpenSettings = { [weak self] in
+                self?.openAccessibilitySettings()
+            }
+            controller.onUseLights = { [weak self] in
+                self?.settings.mode = .lights
+                self?.updateAccessibilityState()
+            }
+            controller.onReset = { [weak self] in
+                self?.resetAccessibilityPermission()
+            }
+            accessibilityWindowController = controller
+        }
+        accessibilityWindowController?.show()
+    }
+
+    /// Clears a stale Accessibility entry and asks again.
+    ///
+    /// macOS pins an entry to the signature of the app it was granted to.
+    /// After the app is replaced by a differently signed build, the list still
+    /// says "on" while this copy is untrusted, and switching it off and on
+    /// keeps the old signature. Removing the entry makes the next request
+    /// record this copy.
+    private func resetAccessibilityPermission() {
+        guard let bundleID = Bundle.main.bundleIdentifier else { return }
+
+        let reset = Process()
+        reset.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+        reset.arguments = ["reset", "Accessibility", bundleID]
+        do {
+            try reset.run()
+            reset.waitUntilExit()
+        } catch {
+            print("WakeyWakey: could not reset Accessibility permission: \(error.localizedDescription)")
+            return
+        }
+
+        requestAccessibilityPermission()
+    }
+
+    private func openAccessibilitySettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    private func updateAccessibilityMenuItem() {
+        // No status item in a settings-only run
+        guard let menu = statusItem?.menu else { return }
+
+        if accessibilityMissing {
+            if accessibilityItem == nil {
+                let item = NSMenuItem(
+                    title: "⚠️ Wakey needs Accessibility access...",
+                    action: #selector(showAccessibilityWindow),
+                    keyEquivalent: ""
+                )
+                item.target = self
+                // Insert after toggle item (index 1, since toggle is at 0)
+                menu.insertItem(item, at: 1)
+                accessibilityItem = item
+            }
+        } else if let item = accessibilityItem {
+            menu.removeItem(item)
+            accessibilityItem = nil
         }
     }
 
@@ -622,6 +718,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func tick() {
+        updateAccessibilityState()
+
         // Check if timer expired
         if let expiresAt = timerExpiresAt, Date() >= expiresAt {
             if isEnabled {
