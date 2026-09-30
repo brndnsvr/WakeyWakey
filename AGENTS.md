@@ -30,10 +30,10 @@ brew install xcodegen
 ./scripts/kill.sh
 
 # Create DMG for distribution
-./scripts/release.sh 1.6.1
+./scripts/release.sh 1.6.2
 
 # Create DMG and publish to GitHub
-./scripts/release.sh 1.6.1 --publish
+./scripts/release.sh 1.6.2 --publish
 ```
 
 **Note**: Always use `build.sh` (Release) when installing to /Applications. Debug builds use a different signing identity which causes Accessibility permission re-prompts on upgrade.

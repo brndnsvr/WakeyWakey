@@ -5,7 +5,7 @@ All notable changes to WakeyWakey will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.6.2] - 2026-09-30
 
 ### Fixed
 - Wakey now repeats its jiggle at the "Repeat every" interval. It used to take its own jiggle for you coming back, wait out the whole idle threshold again, and so jiggle on a fixed beat (every 42 seconds by default) whatever the interval was set to.
@@ -109,6 +109,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-monitor support with cursor clamping
 - Center bias (52%) to prevent edge drift
 
+[1.6.2]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.6.2
 [1.6.1]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.6.1
 [1.6.0]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.6.0
 [1.5.0]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.5.0
