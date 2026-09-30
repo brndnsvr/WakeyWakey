@@ -29,6 +29,7 @@ WakeyWakey/
 │   ├── CLIServer.swift         # CFMessagePort IPC server for CLI commands
 │   ├── Settings.swift          # UserDefaults-backed settings with Combine publishers
 │   ├── Schedule.swift          # Weekly schedule model and rules (Foundation only, unit-tested)
+│   ├── JiggleScheduler.swift   # When Wakey jiggles; tells its own jiggles from the user (unit-tested)
 │   ├── AccessibilityPermissionWindowController.swift  # Window that stays up until Wakey has Accessibility
 │   ├── Settings/
 │   │   ├── SettingsWindowController.swift
@@ -201,7 +202,11 @@ Animated multi-waypoint movement (not instant teleport):
 
 ### Idle Detection
 
-Takes minimum across explicit HID event types for robustness with DisplayLink/virtual displays. Also tracks mouse position changes between ticks to detect Universal Control cursor movement.
+`tick()` reads the seconds since the last HID event by type (explicit types, for robustness with DisplayLink/virtual displays) and the cursor position, and hands them to `JiggleScheduler`, which answers wait, user active, or jiggle.
+
+A jiggle is posted as real input, so it resets the same idle clock and moves the same cursor the app watches. `JiggleScheduler` keeps its own time of last user activity and leaves its jiggles out: a mouse-moved event as old as the last posted move is the jiggle, and so is cursor movement while one is in flight. Keys, clicks, drags and scrolling always count as the user, and so does cursor movement with no event behind it (Universal Control). The first jiggle comes at the idle threshold; after that they repeat at the random "Repeat every" interval until the user is back.
+
+Every posted move must be reported with `noteOwnMove(at:)`. Without that the app takes each jiggle for the user and falls back to one jiggle per idle threshold.
 
 ### Settings
 
@@ -220,6 +225,7 @@ The **WakeyWakey Settings** scheme runs only the Settings window (`WAKEY_SETTING
 - **No menu bar icon** — Ensure `LSUIElement=true` in Info.plist and running from /Applications
 - **Menu not responding** — Check `button.target` and `button.action` are set
 - **Jiggle during typing** — Idle detection uses min across all event types
+- **Jiggles on a fixed beat, one per idle threshold** — a posted move is not reaching `JiggleScheduler.noteOwnMove(at:)`
 - **Cursor jumps to primary display** — Coordinates must be clamped to current screen
 - **CLI can't connect** — App must be running; check `CLIServer` initialized in `applicationDidFinishLaunching`
 

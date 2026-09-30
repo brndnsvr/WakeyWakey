@@ -25,6 +25,7 @@
 		31E47E71A5824DB3EDE4EC94 /* DurationParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F37C3352B9066EF92F09EF7 /* DurationParserTests.swift */; };
 		451D8C082372F597A8466966 /* EnableUntilParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3DCD8A30059F7035F5B6614 /* EnableUntilParser.swift */; };
 		4F7913B7864CC25A754CF524 /* ScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57AAB14ADC1A97FD9C081E60 /* ScheduleTests.swift */; };
+		53893783AD475DBF49E70169 /* JiggleScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB33486A9D448A0911B07048 /* JiggleScheduler.swift */; };
 		5461AD8F95D4BAD886968441 /* DurationParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101DFDFC005409DCEAB38237 /* DurationParser.swift */; };
 		613BBE897A7DC5A945348914 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 342CAC1F8F8BFCF03E6A343A /* SettingsViewController.swift */; };
 		6FF15F4C8BB56F357B07DF14 /* PowerPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B107ADF252759044F85862 /* PowerPlan.swift */; };
@@ -39,9 +40,11 @@
 		D9313F6F1773737F6320492A /* AccessibilityPermissionWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EE55D0C45538B0913B69F47 /* AccessibilityPermissionWindowController.swift */; };
 		D9B953CBC87564BC63EFCD1A /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A806F8615883C35702E707 /* main.swift */; };
 		E3EC167D15A6C9C6A3AFDF2D /* EnableUntilParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3DCD8A30059F7035F5B6614 /* EnableUntilParser.swift */; };
+		E7C7A6A57FF70B41143ECA4A /* JiggleScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB33486A9D448A0911B07048 /* JiggleScheduler.swift */; };
 		E9A5DFAADBF573AB65C71B34 /* PowerAssertionControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1662C3C06BAE32D9424CE06 /* PowerAssertionControllerTests.swift */; };
 		E9C562DFCD07F47A38B89E49 /* PowerAssertionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFB9C1138E0818261130A6D0 /* PowerAssertionController.swift */; };
 		EFF215E219197DF78BC4DA3F /* ApplicationServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7D7704D5D0B9840EFE97894D /* ApplicationServices.framework */; };
+		F08FCFE58508178E1FD9ABF8 /* JiggleSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F82DC7D09530BF4E20FADE2 /* JiggleSchedulerTests.swift */; };
 		F47E1E1232344305561AED75 /* Schedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E53AAACA31BB5DC25D1CF0 /* Schedule.swift */; };
 		F4E69B30ECF3A5F683E38010 /* CLIModeArgumentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC366A16608EFDF5BFB28D86 /* CLIModeArgumentTests.swift */; };
 /* End PBXBuildFile section */
@@ -51,6 +54,7 @@
 		0F37C3352B9066EF92F09EF7 /* DurationParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationParserTests.swift; sourceTree = "<group>"; };
 		101DFDFC005409DCEAB38237 /* DurationParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationParser.swift; sourceTree = "<group>"; };
 		22A54044F37C4357AE4210DB /* WakeyWakey.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WakeyWakey.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2F82DC7D09530BF4E20FADE2 /* JiggleSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JiggleSchedulerTests.swift; sourceTree = "<group>"; };
 		342CAC1F8F8BFCF03E6A343A /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		35E53AAACA31BB5DC25D1CF0 /* Schedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Schedule.swift; sourceTree = "<group>"; };
 		49B6AF252A4920E06688E12E /* EnabledSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnabledSession.swift; sourceTree = "<group>"; };
@@ -72,6 +76,7 @@
 		BB80D6ACE262FB656E3EAA1F /* EnableUntilParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnableUntilParserTests.swift; sourceTree = "<group>"; };
 		C0D64C68669D51B0771B3ED7 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		C5A806F8615883C35702E707 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		CB33486A9D448A0911B07048 /* JiggleScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JiggleScheduler.swift; sourceTree = "<group>"; };
 		CC9D2243B8DACB27011CF4AF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		CEBAD3A0B21C72020D62F763 /* CLIServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIServer.swift; sourceTree = "<group>"; };
 		D1E364CA57B87127B03F73B3 /* EnabledSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnabledSessionTests.swift; sourceTree = "<group>"; };
@@ -140,6 +145,7 @@
 				49B6AF252A4920E06688E12E /* EnabledSession.swift */,
 				4E44A496F755D00B2D18880C /* EnableUntilMenuItemView.swift */,
 				E3DCD8A30059F7035F5B6614 /* EnableUntilParser.swift */,
+				CB33486A9D448A0911B07048 /* JiggleScheduler.swift */,
 				C5A806F8615883C35702E707 /* main.swift */,
 				DFB9C1138E0818261130A6D0 /* PowerAssertionController.swift */,
 				52B107ADF252759044F85862 /* PowerPlan.swift */,
@@ -158,6 +164,7 @@
 				0F37C3352B9066EF92F09EF7 /* DurationParserTests.swift */,
 				D1E364CA57B87127B03F73B3 /* EnabledSessionTests.swift */,
 				BB80D6ACE262FB656E3EAA1F /* EnableUntilParserTests.swift */,
+				2F82DC7D09530BF4E20FADE2 /* JiggleSchedulerTests.swift */,
 				A1662C3C06BAE32D9424CE06 /* PowerAssertionControllerTests.swift */,
 				8AB4451BECBC9C6B5A1ACD65 /* PowerPlanTests.swift */,
 				57AAB14ADC1A97FD9C081E60 /* ScheduleTests.swift */,
@@ -315,6 +322,8 @@
 				0C6D2E40FD3774E553CD64EE /* EnableUntilParserTests.swift in Sources */,
 				13B8D8B9487FDED4FDCC90CF /* EnabledSession.swift in Sources */,
 				0E9E380E3F397862856A061C /* EnabledSessionTests.swift in Sources */,
+				E7C7A6A57FF70B41143ECA4A /* JiggleScheduler.swift in Sources */,
+				F08FCFE58508178E1FD9ABF8 /* JiggleSchedulerTests.swift in Sources */,
 				E9C562DFCD07F47A38B89E49 /* PowerAssertionController.swift in Sources */,
 				E9A5DFAADBF573AB65C71B34 /* PowerAssertionControllerTests.swift in Sources */,
 				0C2E0C05B4831B2264F8B5E2 /* PowerPlan.swift in Sources */,
@@ -347,6 +356,7 @@
 				D25A470DB3387661C8EA800D /* EnableUntilMenuItemView.swift in Sources */,
 				451D8C082372F597A8466966 /* EnableUntilParser.swift in Sources */,
 				73EC5C007234E1032351CF2D /* EnabledSession.swift in Sources */,
+				53893783AD475DBF49E70169 /* JiggleScheduler.swift in Sources */,
 				87ED851E4215EE3E24CAC88D /* PowerAssertionController.swift in Sources */,
 				757F9C9A478A00118C649EB1 /* PowerPlan.swift in Sources */,
 				F47E1E1232344305561AED75 /* Schedule.swift in Sources */,

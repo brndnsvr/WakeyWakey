@@ -5,6 +5,12 @@ All notable changes to WakeyWakey will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- Wakey now repeats its jiggle at the "Repeat every" interval. It used to take its own jiggle for you coming back, wait out the whole idle threshold again, and so jiggle on a fixed beat (every 42 seconds by default) whatever the interval was set to.
+- With Universal Control, Wakey no longer jiggles a second after the cursor stops; it waits the idle threshold like it does for any other input.
+
 ## [1.6.1] - 2026-09-30
 
 ### Changed

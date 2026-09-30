@@ -80,6 +80,7 @@ repo root
 │   ├── PowerAssertionController.swift  # IOKit wrapper: applies/releases assertions, declares user activity
 │   ├── EnabledSession.swift     # Saved enabled session (indefinite / until Date), resume rules, UserDefaults store
 │   ├── Schedule.swift           # Weekly schedule: blocks, calendar resolution, ScheduleDriver (Foundation only)
+│   ├── JiggleScheduler.swift    # When Wakey jiggles; tells its own jiggles from the user (Foundation only)
 │   ├── AccessibilityPermissionWindowController.swift  # Window that stays up until Wakey has Accessibility
 │   ├── Settings/
 │   │   ├── SettingsWindowController.swift
@@ -204,14 +205,30 @@ func apply(_ plan: PowerPlan) -> [String] {
 
 ### Idle Detection
 ```swift
-let types: [CGEventType] = [.mouseMoved, .leftMouseDown, .leftMouseDragged,
+let otherInputTypes: [CGEventType] = [.leftMouseDown, .leftMouseDragged,
     .rightMouseDown, .rightMouseDragged, .otherMouseDown, .otherMouseDragged,
     .scrollWheel, .keyDown, .keyUp, .flagsChanged]
-let idle = types.map { CGEventSource.secondsSinceLastEventType(.hidSystemState, $0) }.min()!
+let sample = JiggleScheduler.Sample(
+    uptime: ProcessInfo.processInfo.systemUptime,
+    mouseMoveIdle: CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: .mouseMoved),
+    otherInputIdle: otherInputTypes.map { CGEventSource.secondsSinceLastEventType(.hidSystemState, eventType: $0) }.min() ?? 0,
+    cursor: NSEvent.mouseLocation,
+    isAnimating: isAnimating
+)
+switch jiggleScheduler.evaluate(sample, idleThreshold: settings.idleThreshold, nextInterval: { settings.randomJiggleInterval }) { ... }
 ```
-- Takes minimum across explicit event types (handles DisplayLink/virtual display stacks)
+- Explicit event types, read one by one (handles DisplayLink/virtual display stacks)
+- Mouse moves are read apart from everything else, because a jiggle is a mouse move
 - Threshold: 42 seconds
 - Wakey only; Lights never runs idle detection or the jiggle
+
+### Own Jiggles vs. the User
+A jiggle is posted as real input, so it resets the idle clock the app reads and moves the cursor the app watches. `JiggleScheduler` (Foundation-only, unit-tested) keeps its own time of last user activity and leaves the jiggles out:
+- A mouse-moved event as old as the last posted move (within 0.25 s) is the jiggle itself
+- Cursor movement while a jiggle is in flight is the jiggle; the first tick after it re-reads where the cursor was left
+- Keys, clicks, drags and scrolling are never posted by the app, so they always count as the user
+
+Every posted move must call `jiggleScheduler.noteOwnMove(at:)`. Miss one and the app takes its jiggle for the user: it waits out the idle threshold again each time and the "Repeat every" interval never applies (the bug fixed in 1.6.2).
 
 ### Jiggle Animation
 Animated multi-waypoint movement (not instant teleport):
@@ -243,13 +260,13 @@ CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: quar
 ```
 
 ### State Logic
-No explicit state enum — uses `isEnabled` bool + `nextActivityDueAt` date, plus `settings.mode`:
+No explicit state enum — uses `isEnabled` bool + `JiggleScheduler` (its `nextDueAt`), plus `settings.mode`:
 - **Disabled** (`isEnabled == false`): waiting for user to enable
-- **Enabled, Wakey, user active** (idle < threshold OR mouse moved): cancel any animation, clear schedule
-- **Enabled, Wakey, just went idle** (`nextActivityDueAt == nil`): jiggle immediately, schedule next
-- **Enabled, Wakey, waiting** (`nextActivityDueAt` in future): waiting for next scheduled jiggle
+- **Enabled, Wakey, user active** (the user's own idle < threshold): cancel any animation, clear the next jiggle
+- **Enabled, Wakey, just went idle** (`nextDueAt == nil`): jiggle immediately, schedule the next one a random interval out
+- **Enabled, Wakey, waiting** (`nextDueAt` in future): waiting for the next jiggle; its own jiggles don't restart the idle wait
 - **Enabled, Lights**: `tick()` returns after the timer-expiry check; only the held power assertions matter
-- **Mode switch while enabled**: `PowerAssertionController` applies the new plan (new before old), any Wakey jiggle animation is cancelled, `nextActivityDueAt` and mouse-tracking state are reset, and switching into Lights with `-u` on declares user activity once
+- **Mode switch while enabled**: `PowerAssertionController` applies the new plan (new before old), any Wakey jiggle animation is cancelled, the `JiggleScheduler` is reset, and switching into Lights with `-u` on declares user activity once
 - **Timer expired** (`timerExpiresAt` reached): auto-disable, release whichever power assertion set is held
 
 ### Weekly Schedule
@@ -284,7 +301,7 @@ For Settings UI work, run the **WakeyWakey Settings** scheme (`WAKEY_SETTINGS_ON
 Configurable values: `mode` (`KeepAwakeMode`: `.wakey` / `.lights`), the three Lights options (`lightsKeepDisplayOn`, `lightsPreventSystemSleep`, `lightsWakeDisplay`, all default `true`), `restoreAfterRestart` (default `true`), timer durations (3), idle threshold, jiggle interval min/max, `scheduleEnabled` (default `false`) and `scheduleBlocks` (JSON, default empty). `Settings.powerPlan` derives the current `PowerPlan` from `mode` and the Lights options. All have sensible defaults and a `resetToDefaults()` method, which also resets the mode to Wakey and all three Lights options to on, and turns the schedule off while keeping its blocks. The Accessibility check (`updateAccessibilityState`) only acts in Wakey — at launch, on a switch into Wakey, and every tick while the permission is missing.
 
 ### Universal Control Detection
-Tracks mouse position changes between ticks to detect cursor movement from Universal Control (which doesn't register as HID events). If the cursor moved since last check, the user is considered active even if `CGEventSource.secondsSinceLastEventType` shows high idle time.
+`JiggleScheduler` compares the cursor position between ticks to detect movement from Universal Control (which doesn't register as HID events). If the cursor moved and no jiggle moved it, that counts as user activity at that moment, even if `CGEventSource.secondsSinceLastEventType` shows high idle time; the next jiggle waits the full idle threshold from there.
 
 ### Timer Feature
 ```swift
@@ -375,6 +392,7 @@ State is managed by the system and visible in System Settings → General → Lo
 - [ ] Launch at Login toggle works (verify in System Settings → Login Items)
 - [ ] Fresh install in Wakey: system alert plus the Accessibility window, which stays until granted or switched to Lights; none of it in Lights
 - [ ] Jiggle only happens after 42s idle, in Wakey mode
+- [ ] Left idle, jiggles repeat at varying gaps inside the "Repeat every" range, not one per idle threshold
 - [ ] No jiggle while typing
 - [ ] Multi-monitor: cursor stays on current display
 - [ ] System doesn't sleep while enabled, in either mode

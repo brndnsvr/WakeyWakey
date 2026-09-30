@@ -33,7 +33,7 @@ Or visit [Releases](https://github.com/brndnsvr/WakeyWakey/releases) for all ver
 
 - **Menu bar only** — no Dock icon, stays out of your way
 - **Modes** — Wakey jiggles the cursor after you go idle; Lights holds the same power assertions as `caffeinate -disu` with no simulated input
-- **Smart activation (Wakey)** — only jiggles after idle threshold (default 42 seconds)
+- **Smart activation (Wakey)** — only jiggles after idle threshold (default 42 seconds), then repeats at a random interval (default 12–79 seconds) until you're back
 - **Natural movement (Wakey)** — animated multi-waypoint paths that look like real mouse movement
 - **Timer options** — use configurable 1h10m/4h20m/9h presets or enter a clock time such as `5pm` or `5:00`
 - **CLI control** — `wakey enable`, `wakey disable`, `wakey status`, `wakey mode` from the terminal
