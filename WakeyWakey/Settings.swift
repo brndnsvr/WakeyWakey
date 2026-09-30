@@ -21,6 +21,9 @@ final class Settings: ObservableObject {
         case lightsPreventSystemSleep
         case lightsWakeDisplay
         case restoreAfterRestart
+        case scheduleEnabled
+        case scheduleBlocks
+        case modeBeforeSchedule
     }
 
     // MARK: - Defaults
@@ -37,11 +40,20 @@ final class Settings: ObservableObject {
         static let lightsPreventSystemSleep = true  // caffeinate -s
         static let lightsWakeDisplay = true         // caffeinate -u
         static let restoreAfterRestart = true
+        // Scratch runs (previews, the Settings scheme) open on the example schedule
+        static let scheduleEnabled = ProcessInfo.processInfo.usesScratchPreferences
+        static let scheduleBlocks: [ScheduleBlock] = ProcessInfo.processInfo.usesScratchPreferences
+            ? ScheduleBlock.samples
+            : []
     }
 
     // MARK: - Storage
 
-    private let defaults = UserDefaults.standard
+    /// Xcode previews and the "WakeyWakey Settings" scheme run under the app's
+    /// bundle ID, so they get a scratch domain instead of the real preferences.
+    private let defaults: UserDefaults = ProcessInfo.processInfo.usesScratchPreferences
+        ? UserDefaults(suiteName: "com.brndnsvr.WakeyWakey.previews") ?? .standard
+        : .standard
 
     // MARK: - Timer Durations
 
@@ -86,7 +98,13 @@ final class Settings: ObservableObject {
     // MARK: - Keep-Awake Mode
 
     @Published var mode: KeepAwakeMode {
-        didSet { defaults.set(mode.rawValue, forKey: Key.mode.rawValue) }
+        didSet {
+            defaults.set(mode.rawValue, forKey: Key.mode.rawValue)
+            // You picked a mode yourself: keep it after the scheduled block
+            if !isApplyingScheduledMode {
+                modeBeforeSchedule = nil
+            }
+        }
     }
 
     // MARK: - Lights Options
@@ -112,6 +130,49 @@ final class Settings: ObservableObject {
     /// after a restart, logout, crash, or upgrade.
     @Published var restoreAfterRestart: Bool {
         didSet { defaults.set(restoreAfterRestart, forKey: Key.restoreAfterRestart.rawValue) }
+    }
+
+    // MARK: - Schedule
+
+    /// Follow `scheduleBlocks`: turn on at each block's start, off at its end.
+    @Published var scheduleEnabled: Bool {
+        didSet { defaults.set(scheduleEnabled, forKey: Key.scheduleEnabled.rawValue) }
+    }
+
+    @Published var scheduleBlocks: [ScheduleBlock] {
+        didSet {
+            if let data = try? JSONEncoder().encode(scheduleBlocks) {
+                defaults.set(data, forKey: Key.scheduleBlocks.rawValue)
+            }
+        }
+    }
+
+    /// The mode a scheduled block replaced, put back once no block is running.
+    /// Kept on disk so a restart mid-block still restores it.
+    private(set) var modeBeforeSchedule: KeepAwakeMode? {
+        didSet { defaults.set(modeBeforeSchedule?.rawValue, forKey: Key.modeBeforeSchedule.rawValue) }
+    }
+
+    private var isApplyingScheduledMode = false
+
+    /// Switches to a block's mode, remembering the mode it replaces.
+    func applyScheduledMode(_ scheduledMode: KeepAwakeMode) {
+        if modeBeforeSchedule == nil {
+            modeBeforeSchedule = mode
+        }
+        guard scheduledMode != mode else { return }
+        isApplyingScheduledMode = true
+        mode = scheduledMode
+        isApplyingScheduledMode = false
+    }
+
+    /// Puts back the mode the schedule replaced, if you haven't picked one since.
+    func restoreModeBeforeSchedule() {
+        guard let saved = modeBeforeSchedule else { return }
+        isApplyingScheduledMode = true
+        mode = saved
+        isApplyingScheduledMode = false
+        modeBeforeSchedule = nil
     }
 
     // MARK: - Computed Properties
@@ -166,6 +227,14 @@ final class Settings: ObservableObject {
             ?? Default.lightsWakeDisplay
         self.restoreAfterRestart = defaults.object(forKey: Key.restoreAfterRestart.rawValue) as? Bool
             ?? Default.restoreAfterRestart
+        self.scheduleEnabled = defaults.object(forKey: Key.scheduleEnabled.rawValue) as? Bool
+            ?? Default.scheduleEnabled
+        // Unreadable stored blocks fall back to the default
+        self.scheduleBlocks = defaults.data(forKey: Key.scheduleBlocks.rawValue)
+            .flatMap { try? JSONDecoder().decode([ScheduleBlock].self, from: $0) }
+            ?? Default.scheduleBlocks
+        self.modeBeforeSchedule = defaults.string(forKey: Key.modeBeforeSchedule.rawValue)
+            .flatMap(KeepAwakeMode.init(rawValue:))
     }
 
     // MARK: - Helpers
@@ -199,5 +268,24 @@ final class Settings: ObservableObject {
         lightsPreventSystemSleep = Default.lightsPreventSystemSleep
         lightsWakeDisplay = Default.lightsWakeDisplay
         restoreAfterRestart = Default.restoreAfterRestart
+        // Turn the schedule off but keep its blocks: they take real effort to
+        // set up, and checking the box brings them straight back
+        scheduleEnabled = Default.scheduleEnabled
+    }
+}
+
+extension ProcessInfo {
+    /// True inside an Xcode canvas preview.
+    var isRunningForXcodePreviews: Bool {
+        environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+    }
+
+    /// True when launched by the "WakeyWakey Settings" scheme.
+    var isSettingsOnlyRun: Bool {
+        environment["WAKEY_SETTINGS_ONLY"] == "1"
+    }
+
+    var usesScratchPreferences: Bool {
+        isRunningForXcodePreviews || isSettingsOnlyRun
     }
 }

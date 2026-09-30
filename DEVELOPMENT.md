@@ -28,9 +28,11 @@ WakeyWakey/
 │   ├── AppDelegate.swift       # Menu bar, timers, jiggle animation, power management
 │   ├── CLIServer.swift         # CFMessagePort IPC server for CLI commands
 │   ├── Settings.swift          # UserDefaults-backed settings with Combine publishers
+│   ├── Schedule.swift          # Weekly schedule model and rules (Foundation only, unit-tested)
 │   ├── Settings/
 │   │   ├── SettingsWindowController.swift
-│   │   └── SettingsViewController.swift
+│   │   ├── SettingsViewController.swift
+│   │   └── ScheduleSection.swift   # Schedule section: week strip, block rows
 │   ├── Assets.xcassets         # App icon
 │   └── Resources/Info.plist    # LSUIElement=true (no Dock icon)
 ├── wakey/
@@ -203,7 +205,15 @@ Takes minimum across explicit HID event types for robustness with DisplayLink/vi
 
 ### Settings
 
-`Settings.swift` is a singleton backed by UserDefaults with `@Published` properties. Configurable values: timer durations (3 presets), idle threshold, jiggle interval min/max. All have sensible defaults and a `resetToDefaults()` method.
+`Settings.swift` is a singleton backed by UserDefaults with `@Published` properties. Configurable values: timer durations (3 presets), idle threshold, jiggle interval min/max, mode and Lights options, restore after restart, and the weekly schedule (`scheduleEnabled`, `scheduleBlocks` stored as JSON). All have sensible defaults and a `resetToDefaults()` method; it turns the schedule off but keeps the blocks.
+
+### Schedule
+
+`Schedule.swift` is Foundation-only. `WeeklySchedule` resolves blocks against the calendar (wall-clock times, past midnight, latest start wins), and `ScheduleDriver` decides each tick whether to enable, switch mode, or disable. `AppDelegate.applySchedule()` runs from `tick()` and tracks `enabledBySchedule`: the schedule only turns off what it turned on, a manual off skips the running blocks, and any user enable takes over. A schedule-driven session is not saved for restarts; the schedule turns itself back on. `Settings.applyScheduledMode(_:)` remembers the mode a block replaced, and `restoreModeBeforeSchedule()` puts it back once nothing is running, unless the user picked a mode since.
+
+### Working on Settings UI
+
+The **WakeyWakey Settings** scheme runs only the Settings window (`WAKEY_SETTINGS_ONLY=1`), on a scratch preferences domain seeded with the example schedule, and quits when the window closes. It can run beside the installed app without touching its session or permissions. `SettingsViewController.swift` also has a `#Preview` for the Xcode canvas, which uses the same scratch domain.
 
 ## Troubleshooting (Development)
 

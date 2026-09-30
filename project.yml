@@ -84,7 +84,19 @@ targets:
       - path: WakeyWakey/EnabledSession.swift
       - path: WakeyWakey/PowerPlan.swift
       - path: WakeyWakey/PowerAssertionController.swift
+      - path: WakeyWakey/Schedule.swift
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: com.brndnsvr.WakeyWakeyTests
+schemes:
+  # Runs only the Settings window on scratch preferences, so UI work can run
+  # beside the installed app without touching its session or permissions.
+  WakeyWakey Settings:
+    build:
+      targets:
+        WakeyWakey: all
+    run:
+      config: Debug
+      environmentVariables:
+        WAKEY_SETTINGS_ONLY: "1"

@@ -46,6 +46,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // Last enabled session, kept on disk for resuming after a restart
     private let sessionStore = EnabledSessionStore()
 
+    // Weekly schedule. A session the schedule started is never saved for a
+    // restart: the schedule turns itself back on if the block is still running.
+    private var scheduleDriver = ScheduleDriver()
+    private var enabledBySchedule = false
+    private var scheduleStatusItem: NSMenuItem!
+
     // Settings reference and Combine subscriptions
     private let settings = Settings.shared
     private var cancellables = Set<AnyCancellable>()
@@ -95,6 +101,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // An Xcode preview only hosts the canvas: no status item, CLI server,
+        // permission prompt, or restored session.
+        if ProcessInfo.processInfo.isRunningForXcodePreviews { return }
+
+        // The "WakeyWakey Settings" scheme shows just the Settings window, so it
+        // can run beside the installed app without sharing its session.
+        if ProcessInfo.processInfo.isSettingsOnlyRun {
+            showSettings()
+            // Xcode stays active after launching us, and macOS won't hand
+            // activation to an accessory app then; put the window in front anyway.
+            settingsWindowController?.window?.orderFrontRegardless()
+            return
+        }
+
         // Status item setup
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
@@ -109,6 +129,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         toggleItem = NSMenuItem(title: "Enable", action: #selector(toggleEnabled), keyEquivalent: "")
         toggleItem.target = self
         menu.addItem(toggleItem)
+
+        // What the schedule is doing; hidden while the schedule is off
+        scheduleStatusItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        scheduleStatusItem.isEnabled = false
+        scheduleStatusItem.isHidden = true
+        menu.addItem(scheduleStatusItem)
         menu.addItem(NSMenuItem.separator())
 
         // Mode section: Wakey (cursor jiggle) vs Lights (power assertions only)
@@ -191,6 +217,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Pick up where a restart, logout, crash, or upgrade left off
         resumeSavedSession()
 
+        // Then let the schedule turn on if a block is running
+        applySchedule()
+
         // Start CLI IPC server
         cliServer = CLIServer(handler: self)
     }
@@ -200,6 +229,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func quitFromMenu() {
         sessionStore.save(nil)
         NSApp.terminate(nil)
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        ProcessInfo.processInfo.isSettingsOnlyRun
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -331,6 +364,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func toggleEnabled() {
+        if isEnabled {
+            // Turning off yourself skips the rest of any running block
+            scheduleDriver.skipRunning(in: weeklySchedule, at: Date())
+        }
+        enabledBySchedule = false
         isEnabled.toggle()
         timerExpiresAt = nil  // Clear any active timer on manual toggle
         if isEnabled {
@@ -363,6 +401,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func enable(until expiration: Date) {
+        enabledBySchedule = false  // Your timer takes over from the schedule
         timerExpiresAt = expiration
         if !isEnabled {
             isEnabled = true
@@ -371,6 +410,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func enableIndefinitely() {
+        enabledBySchedule = false  // You take over from the schedule
         timerExpiresAt = nil
         if !isEnabled {
             isEnabled = true
@@ -380,9 +420,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Saved Session
 
-    /// The live session: nil while disabled.
+    /// The live session: nil while disabled or while the schedule runs it.
     private var currentSession: EnabledSession? {
-        guard isEnabled else { return nil }
+        guard isEnabled, !enabledBySchedule else { return nil }
         return timerExpiresAt.map(EnabledSession.until) ?? .indefinite
     }
 
@@ -405,6 +445,69 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // setting says to ignore, so it can't come back later
             saveSession()
         }
+    }
+
+    // MARK: - Schedule
+
+    private var weeklySchedule: WeeklySchedule? {
+        settings.scheduleEnabled ? WeeklySchedule(blocks: settings.scheduleBlocks) : nil
+    }
+
+    /// Follows the weekly schedule: turns on at a block's start, switches mode
+    /// between blocks, and turns off at the end what it turned on itself.
+    private func applySchedule(now: Date = Date()) {
+        let schedule = weeklySchedule
+        let action = scheduleDriver.evaluate(
+            schedule: schedule,
+            now: now,
+            isEnabled: isEnabled,
+            enabledBySchedule: enabledBySchedule
+        )
+
+        switch action {
+        case .none:
+            break
+        case .enable(let mode):
+            settings.applyScheduledMode(mode)
+            enabledBySchedule = true
+            timerExpiresAt = nil
+            isEnabled = true
+            beginPreventingSleep()
+        case .switchMode(let mode):
+            settings.applyScheduledMode(mode)
+        case .disable:
+            isEnabled = false
+            enabledBySchedule = false
+            endPreventingSleep()
+            nextActivityDueAt = nil
+        }
+
+        // Off, with no block in charge: put back the mode a block replaced
+        if !isEnabled && scheduleDriver.effective(in: schedule, at: now) == nil {
+            settings.restoreModeBeforeSchedule()
+        }
+
+        updateScheduleStatusItem(schedule: schedule, now: now)
+    }
+
+    /// One line on what the schedule is doing, or nil while it's off.
+    private func scheduleSummary(schedule: WeeklySchedule?, now: Date) -> String? {
+        guard let schedule else { return nil }
+        let running = enabledBySchedule ? scheduleDriver.effective(in: schedule, at: now) : nil
+        return ScheduleText.summary(schedule: schedule, running: running, now: now)
+    }
+
+    private func updateScheduleStatusItem(schedule: WeeklySchedule?, now: Date) {
+        guard let item = scheduleStatusItem else { return }
+        guard let summary = scheduleSummary(schedule: schedule, now: now) else {
+            item.isHidden = true
+            return
+        }
+        let title = "Schedule: \(summary)"
+        if item.title != title {
+            item.title = title
+        }
+        item.isHidden = false
     }
 
     private func updateUIForState() {
@@ -497,7 +600,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func updateWarningMenuItem() {
-        guard let menu = statusItem.menu else { return }
+        // No status item in a settings-only run
+        guard let menu = statusItem?.menu else { return }
 
         if powerAssertionFailed && isEnabled {
             // Add warning if not present
@@ -528,6 +632,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             timerExpiresAt = nil
             return
         }
+
+        applySchedule()
 
         guard isEnabled else { return }
 
@@ -959,6 +1065,9 @@ extension AppDelegate: CLICommandHandler {
 
     func cliDisable() -> CLIServer.Response {
         if isEnabled {
+            // Turning off yourself skips the rest of any running block
+            scheduleDriver.skipRunning(in: weeklySchedule, at: Date())
+            enabledBySchedule = false
             isEnabled = false
             endPreventingSleep()
             nextActivityDueAt = nil
@@ -979,7 +1088,9 @@ extension AppDelegate: CLICommandHandler {
         parts.append("Mode: \(modeDescription())")
 
         if isEnabled {
-            if let expiresAt = timerExpiresAt {
+            if enabledBySchedule {
+                parts.append("Timer: by schedule")
+            } else if let expiresAt = timerExpiresAt {
                 let remaining = expiresAt.timeIntervalSinceNow
                 if remaining > 0 {
                     parts.append("Timer: \(formatRemaining(remaining)) remaining")
@@ -990,6 +1101,8 @@ extension AppDelegate: CLICommandHandler {
                 parts.append("Timer: indefinite")
             }
         }
+
+        parts.append("Schedule: \(scheduleSummary(schedule: weeklySchedule, now: Date()) ?? "off")")
 
         return CLIServer.Response(ok: true, message: parts.joined(separator: "\n"))
     }

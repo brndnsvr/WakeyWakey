@@ -39,6 +39,10 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
 
     private var restoreAfterRestartCheckbox: NSButton!
 
+    // MARK: - Schedule
+
+    private var scheduleSection: ScheduleSectionView!
+
     private var cancellables = Set<AnyCancellable>()
 
     private enum BehaviorLimit {
@@ -47,10 +51,13 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
     }
 
     private enum Layout {
-        static let windowWidth: CGFloat = 400
+        static let windowWidth: CGFloat = 780
+        static let columnSpacing: CGFloat = 20
         static let boxWidth: CGFloat = 360
         static let boxContentWidth: CGFloat = 336
-        static let jiggleBoxBaseTitle = "Jiggle Behavior"
+        static let wideBoxWidth: CGFloat = 740
+        static let wideBoxContentWidth: CGFloat = 716
+        static let jiggleBoxBaseTitle = "Keepalive Timers"
         static let lightsBoxBaseTitle = "Lights Behavior"
     }
 
@@ -84,8 +91,17 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
             mainStack.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -20)
         ])
 
+        // Two columns: how WakeyWakey turns on (left), what each mode does (right)
+        let leftColumn = createColumnStack()
+        let rightColumn = createColumnStack()
+        let columns = NSStackView(views: [leftColumn, rightColumn])
+        columns.orientation = .horizontal
+        columns.alignment = .top
+        columns.spacing = Layout.columnSpacing
+        mainStack.addArrangedSubview(columns)
+
         // Mode section
-        addFullWidthBox(createModeBox(), to: mainStack)
+        addColumnBox(createModeBox(), to: leftColumn)
 
         // Quick Timers section
         let timerBox = createSectionBox(title: "Quick Timers")
@@ -100,9 +116,12 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
                 timerGrid.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
             ])
         }
-        addFullWidthBox(timerBox, to: mainStack)
+        addColumnBox(timerBox, to: leftColumn)
 
-        // Jiggle Behavior section
+        // Startup section
+        addColumnBox(createStartupBox(), to: leftColumn)
+
+        // Keepalive Timers section (Wakey's idle threshold and jiggle interval)
         behaviorBox = createSectionBox(title: Layout.jiggleBoxBaseTitle)
         let behaviorGrid = createBehaviorGrid()
         behaviorGrid.translatesAutoresizingMaskIntoConstraints = false
@@ -115,13 +134,27 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
                 behaviorGrid.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
             ])
         }
-        addFullWidthBox(behaviorBox, to: mainStack)
+        addColumnBox(behaviorBox, to: rightColumn)
 
         // Lights Behavior section
-        addFullWidthBox(createLightsBox(), to: mainStack)
+        addColumnBox(createLightsBox(), to: rightColumn)
 
-        // Startup section
-        addFullWidthBox(createStartupBox(), to: mainStack)
+        // Schedule section, spanning both columns
+        let scheduleBox = createSectionBox(title: "Schedule")
+        scheduleSection = ScheduleSectionView(contentWidth: Layout.wideBoxContentWidth)
+        scheduleSection.onHeightChange = { [weak self] in self?.resizeWindowToFit() }
+        scheduleBox.contentView?.addSubview(scheduleSection)
+        if let contentView = scheduleBox.contentView {
+            NSLayoutConstraint.activate([
+                scheduleSection.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+                scheduleSection.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+                scheduleSection.topAnchor.constraint(equalTo: contentView.topAnchor),
+                scheduleSection.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+            ])
+        }
+        scheduleBox.translatesAutoresizingMaskIntoConstraints = false
+        scheduleBox.widthAnchor.constraint(equalToConstant: Layout.wideBoxWidth).isActive = true
+        mainStack.addArrangedSubview(scheduleBox)
 
         // Button container (right-aligned)
         let buttonContainer = NSStackView()
@@ -152,12 +185,34 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
         return box
     }
 
-    /// Adds a section box to the main stack at a fixed full-content-width (360 pt),
-    /// per the mockup: every box is full width regardless of its own content.
-    private func addFullWidthBox(_ box: NSBox, to stack: NSStackView) {
+    private func createColumnStack() -> NSStackView {
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 16
+        return stack
+    }
+
+    /// Adds a section box to a column at the fixed column width (360 pt), so
+    /// every box in a column lines up regardless of its own content.
+    private func addColumnBox(_ box: NSBox, to stack: NSStackView) {
         box.translatesAutoresizingMaskIntoConstraints = false
         box.widthAnchor.constraint(equalToConstant: Layout.boxWidth).isActive = true
         stack.addArrangedSubview(box)
+    }
+
+    /// Refits the window height after the Schedule section adds or removes a
+    /// block, keeping the title bar where it is.
+    private func resizeWindowToFit() {
+        guard let window = view.window else { return }
+        view.layoutSubtreeIfNeeded()
+        let targetHeight = view.fittingSize.height
+        var frame = window.frame
+        let delta = targetHeight - window.contentRect(forFrameRect: frame).height
+        guard delta != 0 else { return }
+        frame.origin.y -= delta
+        frame.size.height += delta
+        window.setFrame(frame, display: true, animate: true)
     }
 
     // MARK: - Mode Box
@@ -323,7 +378,7 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
         )
 
         let footnoteLabel = createWrappingLabel(
-            "When WakeyWakey reopens after a restart, logout, crash, or update, it turns back on with the same end time. It reopens on its own only with Launch at Login. Choosing Quit starts it off next time."
+            "When WakeyWakey reopens after a restart, logout, crash, or update, it turns back on with the same end time. It reopens on its own only with Launch at Login. Choosing Quit starts it off next time, unless a scheduled block is running."
         )
 
         let contentStack = NSStackView(views: [restoreAfterRestartCheckbox, footnoteLabel])
@@ -719,6 +774,9 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
         // Startup
         restoreAfterRestartCheckbox.state = settings.restoreAfterRestart ? .on : .off
 
+        // Schedule
+        scheduleSection.reload()
+
         // Mode + Lights
         refreshModeDependentUI(
             mode: settings.mode,
@@ -823,4 +881,8 @@ final class SettingsViewController: NSViewController, NSTextFieldDelegate {
         Settings.shared.resetToDefaults()
         loadSettings()
     }
+}
+
+#Preview("Settings") {
+    SettingsViewController()
 }

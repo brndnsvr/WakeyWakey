@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		02585082CE2675C06212E4D4 /* Schedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E53AAACA31BB5DC25D1CF0 /* Schedule.swift */; };
 		02D75B515B0DC59BFC210962 /* PowerPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AB4451BECBC9C6B5A1ACD65 /* PowerPlanTests.swift */; };
 		07A37E154EC2ED4FDB44DC4F /* CLIServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEBAD3A0B21C72020D62F763 /* CLIServer.swift */; };
 		0BFF4CA7B69D53DED6753E50 /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B4F5BF8E95151F467D3712E /* SettingsWindowController.swift */; };
@@ -19,9 +20,11 @@
 		191FEA10E3AF0174315F9E1F /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 828A4A94A98F0E83E2A32AFB /* IOKit.framework */; };
 		1C28E1D47D0596094CF5CB42 /* CLIModeArgument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BFD50E3AD452324C560B64 /* CLIModeArgument.swift */; };
 		2635E293BA42012B491F197F /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BB805F4F5CADB7C94717775 /* Settings.swift */; };
+		298F49DCB88450A41CDBBBA3 /* ScheduleSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BEE0255A89455D46C17602C /* ScheduleSection.swift */; };
 		2CFF5CDC7244D2B0A86C773F /* CLIModeArgument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65BFD50E3AD452324C560B64 /* CLIModeArgument.swift */; };
 		31E47E71A5824DB3EDE4EC94 /* DurationParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F37C3352B9066EF92F09EF7 /* DurationParserTests.swift */; };
 		451D8C082372F597A8466966 /* EnableUntilParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3DCD8A30059F7035F5B6614 /* EnableUntilParser.swift */; };
+		4F7913B7864CC25A754CF524 /* ScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57AAB14ADC1A97FD9C081E60 /* ScheduleTests.swift */; };
 		5461AD8F95D4BAD886968441 /* DurationParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101DFDFC005409DCEAB38237 /* DurationParser.swift */; };
 		613BBE897A7DC5A945348914 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 342CAC1F8F8BFCF03E6A343A /* SettingsViewController.swift */; };
 		6FF15F4C8BB56F357B07DF14 /* PowerPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B107ADF252759044F85862 /* PowerPlan.swift */; };
@@ -38,6 +41,7 @@
 		E9A5DFAADBF573AB65C71B34 /* PowerAssertionControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1662C3C06BAE32D9424CE06 /* PowerAssertionControllerTests.swift */; };
 		E9C562DFCD07F47A38B89E49 /* PowerAssertionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFB9C1138E0818261130A6D0 /* PowerAssertionController.swift */; };
 		EFF215E219197DF78BC4DA3F /* ApplicationServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7D7704D5D0B9840EFE97894D /* ApplicationServices.framework */; };
+		F47E1E1232344305561AED75 /* Schedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E53AAACA31BB5DC25D1CF0 /* Schedule.swift */; };
 		F4E69B30ECF3A5F683E38010 /* CLIModeArgumentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC366A16608EFDF5BFB28D86 /* CLIModeArgumentTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -47,12 +51,15 @@
 		101DFDFC005409DCEAB38237 /* DurationParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationParser.swift; sourceTree = "<group>"; };
 		22A54044F37C4357AE4210DB /* WakeyWakey.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WakeyWakey.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		342CAC1F8F8BFCF03E6A343A /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
+		35E53AAACA31BB5DC25D1CF0 /* Schedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Schedule.swift; sourceTree = "<group>"; };
 		49B6AF252A4920E06688E12E /* EnabledSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnabledSession.swift; sourceTree = "<group>"; };
 		4E44A496F755D00B2D18880C /* EnableUntilMenuItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnableUntilMenuItemView.swift; sourceTree = "<group>"; };
 		52B107ADF252759044F85862 /* PowerPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerPlan.swift; sourceTree = "<group>"; };
+		57AAB14ADC1A97FD9C081E60 /* ScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleTests.swift; sourceTree = "<group>"; };
 		65BFD50E3AD452324C560B64 /* CLIModeArgument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIModeArgument.swift; sourceTree = "<group>"; };
 		6B4F5BF8E95151F467D3712E /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 		6BB805F4F5CADB7C94717775 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		7BEE0255A89455D46C17602C /* ScheduleSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleSection.swift; sourceTree = "<group>"; };
 		7D7704D5D0B9840EFE97894D /* ApplicationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ApplicationServices.framework; path = System/Library/Frameworks/ApplicationServices.framework; sourceTree = SDKROOT; };
 		828A4A94A98F0E83E2A32AFB /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		8AB4451BECBC9C6B5A1ACD65 /* PowerPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerPlanTests.swift; sourceTree = "<group>"; };
@@ -97,6 +104,7 @@
 		17C2F78F9D1E1D76AAED9ACD /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				7BEE0255A89455D46C17602C /* ScheduleSection.swift */,
 				342CAC1F8F8BFCF03E6A343A /* SettingsViewController.swift */,
 				6B4F5BF8E95151F467D3712E /* SettingsWindowController.swift */,
 			);
@@ -132,6 +140,7 @@
 				C5A806F8615883C35702E707 /* main.swift */,
 				DFB9C1138E0818261130A6D0 /* PowerAssertionController.swift */,
 				52B107ADF252759044F85862 /* PowerPlan.swift */,
+				35E53AAACA31BB5DC25D1CF0 /* Schedule.swift */,
 				6BB805F4F5CADB7C94717775 /* Settings.swift */,
 				441BF4DD847F371007DC75A0 /* Resources */,
 				17C2F78F9D1E1D76AAED9ACD /* Settings */,
@@ -148,6 +157,7 @@
 				BB80D6ACE262FB656E3EAA1F /* EnableUntilParserTests.swift */,
 				A1662C3C06BAE32D9424CE06 /* PowerAssertionControllerTests.swift */,
 				8AB4451BECBC9C6B5A1ACD65 /* PowerPlanTests.swift */,
+				57AAB14ADC1A97FD9C081E60 /* ScheduleTests.swift */,
 			);
 			path = WakeyWakeyTests;
 			sourceTree = "<group>";
@@ -306,6 +316,8 @@
 				E9A5DFAADBF573AB65C71B34 /* PowerAssertionControllerTests.swift in Sources */,
 				0C2E0C05B4831B2264F8B5E2 /* PowerPlan.swift in Sources */,
 				02D75B515B0DC59BFC210962 /* PowerPlanTests.swift in Sources */,
+				02585082CE2675C06212E4D4 /* Schedule.swift in Sources */,
+				4F7913B7864CC25A754CF524 /* ScheduleTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -333,6 +345,8 @@
 				73EC5C007234E1032351CF2D /* EnabledSession.swift in Sources */,
 				87ED851E4215EE3E24CAC88D /* PowerAssertionController.swift in Sources */,
 				757F9C9A478A00118C649EB1 /* PowerPlan.swift in Sources */,
+				F47E1E1232344305561AED75 /* Schedule.swift in Sources */,
+				298F49DCB88450A41CDBBBA3 /* ScheduleSection.swift in Sources */,
 				2635E293BA42012B491F197F /* Settings.swift in Sources */,
 				613BBE897A7DC5A945348914 /* SettingsViewController.swift in Sources */,
 				0BFF4CA7B69D53DED6753E50 /* SettingsWindowController.swift in Sources */,
