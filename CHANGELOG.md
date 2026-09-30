@@ -5,7 +5,7 @@ All notable changes to WakeyWakey will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.6.1] - 2026-09-30
 
 ### Changed
 - Wakey mode now keeps a window on screen until it has the Accessibility permission it needs. Before, macOS asked once and WakeyWakey carried on without it, keeping the Mac awake but silently not moving the cursor. The window closes by itself when the permission is granted, or when you choose "Use Lights Instead"; the menu shows a warning line until then.
@@ -103,6 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-monitor support with cursor clamping
 - Center bias (52%) to prevent edge drift
 
+[1.6.1]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.6.1
 [1.6.0]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.6.0
 [1.5.0]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.5.0
 [1.4.1]: https://github.com/brndnsvr/WakeyWakey/releases/tag/v1.4.1
