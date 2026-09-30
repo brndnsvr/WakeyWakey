@@ -127,8 +127,9 @@ Sleep needs none of this: WakeyWakey keeps running while the Mac sleeps, so its 
 
 If Wakey doesn't move the cursor:
 1. Go to System Settings → Privacy & Security → Accessibility
-2. Find WakeyWakey and toggle it on
-3. If the cursor still doesn't move after a minute idle, quit and reopen WakeyWakey
+2. Find WakeyWakey and toggle it on. If it isn't listed, click **+** and choose it from Applications
+3. If it's already on but WakeyWakey still asks, click **Reset and ask again** in its window, then turn it on again. (The list can stay "on" for an older copy of the app.)
+4. If the cursor still doesn't move after a minute idle, quit and reopen WakeyWakey
 
 ## Troubleshooting
 

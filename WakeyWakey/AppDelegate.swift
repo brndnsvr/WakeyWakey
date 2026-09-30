@@ -576,9 +576,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.settings.mode = .lights
                 self?.updateAccessibilityState()
             }
+            controller.onReset = { [weak self] in
+                self?.resetAccessibilityPermission()
+            }
             accessibilityWindowController = controller
         }
         accessibilityWindowController?.show()
+    }
+
+    /// Clears a stale Accessibility entry and asks again.
+    ///
+    /// macOS pins an entry to the signature of the app it was granted to.
+    /// After the app is replaced by a differently signed build, the list still
+    /// says "on" while this copy is untrusted, and switching it off and on
+    /// keeps the old signature. Removing the entry makes the next request
+    /// record this copy.
+    private func resetAccessibilityPermission() {
+        guard let bundleID = Bundle.main.bundleIdentifier else { return }
+
+        let reset = Process()
+        reset.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+        reset.arguments = ["reset", "Accessibility", bundleID]
+        do {
+            try reset.run()
+            reset.waitUntilExit()
+        } catch {
+            print("WakeyWakey: could not reset Accessibility permission: \(error.localizedDescription)")
+            return
+        }
+
+        requestAccessibilityPermission()
     }
 
     private func openAccessibilitySettings() {

@@ -12,6 +12,7 @@ final class AccessibilityPermissionWindowController: NSWindowController {
 
     var onOpenSettings: (() -> Void)?
     var onUseLights: (() -> Void)?
+    var onReset: (() -> Void)?
 
     private var spinner: NSProgressIndicator!
     private var grantedImageView: NSImageView!
@@ -66,12 +67,24 @@ final class AccessibilityPermissionWindowController: NSWindowController {
             color: .labelColor
         )
 
-        // The two ways the steps above fail: macOS didn't list the app, or the
-        // list says on while this copy of the app is still untrusted
+        // The two ways the steps above fail. macOS may not list the app; and the
+        // list can say "on" for a copy of the app that is gone (a differently
+        // signed build), which switching off and on does not fix.
         let helpLabel = wrappingLabel(
-            "Not in the list? Click + and choose WakeyWakey from Applications. Already on? Switch it off and back on.",
+            "Not in the list? Click + and choose WakeyWakey from Applications.",
             size: 12
         )
+
+        let resetButton = NSButton(title: "", target: self, action: #selector(resetClicked))
+        resetButton.isBordered = false
+        resetButton.attributedTitle = NSAttributedString(
+            string: "Already on, but this window is still here? Reset and ask again",
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 12),
+                .foregroundColor: NSColor.linkColor
+            ]
+        )
+        resetButton.toolTip = "Removes the WakeyWakey Accessibility entry so macOS records this copy of the app, then asks again"
 
         spinner = NSProgressIndicator()
         spinner.style = .spinning
@@ -92,12 +105,13 @@ final class AccessibilityPermissionWindowController: NSWindowController {
         statusRow.alignment = .centerY
         statusRow.spacing = 6
 
-        let textStack = NSStackView(views: [titleLabel, bodyLabel, stepsLabel, helpLabel, statusRow])
+        let textStack = NSStackView(views: [titleLabel, bodyLabel, stepsLabel, helpLabel, resetButton, statusRow])
         textStack.orientation = .vertical
         textStack.alignment = .leading
         textStack.spacing = 10
         textStack.setCustomSpacing(6, after: stepsLabel)
-        textStack.setCustomSpacing(14, after: helpLabel)
+        textStack.setCustomSpacing(2, after: helpLabel)
+        textStack.setCustomSpacing(14, after: resetButton)
         for label in [titleLabel, bodyLabel, stepsLabel, helpLabel] {
             label.translatesAutoresizingMaskIntoConstraints = false
             label.widthAnchor.constraint(equalToConstant: Layout.textWidth).isActive = true
@@ -199,5 +213,9 @@ final class AccessibilityPermissionWindowController: NSWindowController {
 
     @objc private func useLightsClicked(_ sender: NSButton) {
         onUseLights?()
+    }
+
+    @objc private func resetClicked(_ sender: NSButton) {
+        onReset?()
     }
 }

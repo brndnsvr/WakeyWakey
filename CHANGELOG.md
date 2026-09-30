@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Wakey mode now keeps a window on screen until it has the Accessibility permission it needs. Before, macOS asked once and WakeyWakey carried on without it, keeping the Mac awake but silently not moving the cursor. The window closes by itself when the permission is granted, or when you choose "Use Lights Instead"; the menu shows a warning line until then.
+- The window can reset a stale Accessibility entry ("Reset and ask again") for when System Settings shows WakeyWakey as on but macOS still treats this copy as untrusted.
 
 ## [1.6.0] - 2026-09-30
 

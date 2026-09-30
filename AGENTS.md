@@ -335,6 +335,7 @@ Wakey needs the Accessibility permission to post CGEvents; Lights needs none. `u
 - `requestAccessibilityPermission()` calls `AXIsProcessTrustedWithOptions(prompt: true)` once, which adds WakeyWakey to the Accessibility list and shows the system alert.
 - `AccessibilityPermissionWindowController` shows a floating window with no close button, on every desktop. It clears only when the permission is granted (it confirms, then closes) or the mode changes to Lights ("Use Lights Instead").
 - The menu gets a `⚠️ Wakey needs Accessibility access...` item that brings the window back to the front.
+- The window's "Reset and ask again" link runs `tccutil reset Accessibility <bundle id>` and re-requests (`resetAccessibilityPermission()`). macOS pins an entry to the signature it was granted to; after a differently signed build replaces the app, the list says "on" while this copy is untrusted, and switching it off and on keeps the old signature. Only removing the entry fixes it.
 
 Don't add a close button or a "later" option: without the permission Wakey keeps the Mac awake but silently fails to move the cursor, which is the failure this window exists to prevent.
 
