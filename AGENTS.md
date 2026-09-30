@@ -80,6 +80,7 @@ repo root
 │   ├── PowerAssertionController.swift  # IOKit wrapper: applies/releases assertions, declares user activity
 │   ├── EnabledSession.swift     # Saved enabled session (indefinite / until Date), resume rules, UserDefaults store
 │   ├── Schedule.swift           # Weekly schedule: blocks, calendar resolution, ScheduleDriver (Foundation only)
+│   ├── AccessibilityPermissionWindowController.swift  # Window that stays up until Wakey has Accessibility
 │   ├── Settings/
 │   │   ├── SettingsWindowController.swift
 │   │   ├── SettingsViewController.swift
@@ -280,7 +281,7 @@ Settings, the menu, and the CLI all write the same `Settings` properties, so eve
 
 For Settings UI work, run the **WakeyWakey Settings** scheme (`WAKEY_SETTINGS_ONLY=1`): it shows only the Settings window on a scratch preferences domain (`com.brndnsvr.WakeyWakey.previews`, seeded with the example schedule) and quits when the window closes, so it runs beside the installed app. Xcode previews (`#Preview` in `SettingsViewController.swift`) use the same scratch domain and skip the status item, CLI server, and session restore.
 
-Configurable values: `mode` (`KeepAwakeMode`: `.wakey` / `.lights`), the three Lights options (`lightsKeepDisplayOn`, `lightsPreventSystemSleep`, `lightsWakeDisplay`, all default `true`), `restoreAfterRestart` (default `true`), timer durations (3), idle threshold, jiggle interval min/max, `scheduleEnabled` (default `false`) and `scheduleBlocks` (JSON, default empty). `Settings.powerPlan` derives the current `PowerPlan` from `mode` and the Lights options. All have sensible defaults and a `resetToDefaults()` method, which also resets the mode to Wakey and all three Lights options to on, and turns the schedule off while keeping its blocks. The Accessibility prompt (`requestAccessibilityPermissionIfNeeded`) runs only in Wakey — at launch, and again when switching into Wakey while not yet trusted.
+Configurable values: `mode` (`KeepAwakeMode`: `.wakey` / `.lights`), the three Lights options (`lightsKeepDisplayOn`, `lightsPreventSystemSleep`, `lightsWakeDisplay`, all default `true`), `restoreAfterRestart` (default `true`), timer durations (3), idle threshold, jiggle interval min/max, `scheduleEnabled` (default `false`) and `scheduleBlocks` (JSON, default empty). `Settings.powerPlan` derives the current `PowerPlan` from `mode` and the Lights options. All have sensible defaults and a `resetToDefaults()` method, which also resets the mode to Wakey and all three Lights options to on, and turns the schedule off while keeping its blocks. The Accessibility check (`updateAccessibilityState`) only acts in Wakey — at launch, on a switch into Wakey, and every tick while the permission is missing.
 
 ### Universal Control Detection
 Tracks mouse position changes between ticks to detect cursor movement from Universal Control (which doesn't register as HID events). If the cursor moved since last check, the user is considered active even if `CGEventSource.secondsSinceLastEventType` shows high idle time.
@@ -330,14 +331,20 @@ if let expiresAt = timerExpiresAt, Date() >= expiresAt {
 ## Permissions
 
 ### Accessibility
-Requires Accessibility permission to post CGEvents. On first launch, the app automatically opens System Settings using `AXIsProcessTrustedWithOptions(kAXTrustedCheckOptionPrompt: true)`.
+Wakey needs the Accessibility permission to post CGEvents; Lights needs none. `updateAccessibilityState()` runs at launch, on every mode change, and every tick (macOS sends no notification when the permission is granted). While Wakey is the mode and `AXIsProcessTrusted()` is false:
+- `requestAccessibilityPermission()` calls `AXIsProcessTrustedWithOptions(prompt: true)` once, which adds WakeyWakey to the Accessibility list and shows the system alert.
+- `AccessibilityPermissionWindowController` shows a floating window with no close button, on every desktop. It clears only when the permission is granted (it confirms, then closes) or the mode changes to Lights ("Use Lights Instead").
+- The menu gets a `⚠️ Wakey needs Accessibility access...` item that brings the window back to the front.
+
+Don't add a close button or a "later" option: without the permission Wakey keeps the Mac awake but silently fails to move the cursor, which is the failure this window exists to prevent.
 
 ```swift
-private func requestAccessibilityPermissionIfNeeded() {
-    if !AXIsProcessTrusted() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        _ = AXIsProcessTrustedWithOptions(options)
-    }
+private func updateAccessibilityState() {
+    let needed = settings.powerPlan.needsAccessibility
+    let missing = needed && !AXIsProcessTrusted()
+    guard missing != accessibilityMissing else { return }
+    accessibilityMissing = missing
+    // missing → prompt + show window; granted → confirm + close; Lights → close
 }
 ```
 
@@ -365,7 +372,7 @@ State is managed by the system and visible in System Settings → General → Lo
 - [ ] Icon changes (cup.and.saucer ↔ cup.and.saucer.fill) and stays the cup when switching modes
 - [ ] Timer options (default 1h10m/4h20m/9h, configurable) enable and auto-disable
 - [ ] Launch at Login toggle works (verify in System Settings → Login Items)
-- [ ] Fresh install auto-opens Accessibility settings, in Wakey mode only
+- [ ] Fresh install in Wakey: system alert plus the Accessibility window, which stays until granted or switched to Lights; none of it in Lights
 - [ ] Jiggle only happens after 42s idle, in Wakey mode
 - [ ] No jiggle while typing
 - [ ] Multi-monitor: cursor stays on current display

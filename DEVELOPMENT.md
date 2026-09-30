@@ -29,6 +29,7 @@ WakeyWakey/
 │   ├── CLIServer.swift         # CFMessagePort IPC server for CLI commands
 │   ├── Settings.swift          # UserDefaults-backed settings with Combine publishers
 │   ├── Schedule.swift          # Weekly schedule model and rules (Foundation only, unit-tested)
+│   ├── AccessibilityPermissionWindowController.swift  # Window that stays up until Wakey has Accessibility
 │   ├── Settings/
 │   │   ├── SettingsWindowController.swift
 │   │   ├── SettingsViewController.swift
@@ -86,10 +87,9 @@ Add to `~/.zshrc` to persist. Then generate the Xcode project:
 
 Both build scripts compile two targets: the `WakeyWakey` app and the `wakey` CLI tool.
 
-First launch will prompt for Accessibility permission. If the dialog doesn't appear:
+First launch in Wakey mode shows the macOS Accessibility alert and WakeyWakey's own window, which stays up until the permission is granted or the mode is switched to Lights. If WakeyWakey isn't in the list:
 1. System Settings → Privacy & Security → Accessibility
 2. Add WakeyWakey and enable it
-3. Relaunch the app
 
 To stop the app:
 
@@ -195,7 +195,7 @@ Animated multi-waypoint movement (not instant teleport):
 - **IOKit IOPM assertions** — prevent system idle sleep and display sleep
 - **ApplicationServices CGEvents** — post mouse movements
 - **ServiceManagement SMAppService** — Launch at Login
-- **AXIsProcessTrustedWithOptions** — auto-open Accessibility settings
+- **AXIsProcessTrusted / AXIsProcessTrustedWithOptions** — check and request Accessibility; a window stays up until it's granted
 - **CFMessagePort** — IPC between CLI and app
 - **Combine** — settings observation and menu title updates
 
