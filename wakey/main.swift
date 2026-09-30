@@ -8,8 +8,8 @@ let recvTimeout: CFTimeInterval = 5.0
 
 // MARK: - Help
 
-let version = "1.6.1"
-let build = "13"
+let version = "1.6.2"
+let build = "14"
 
 let helpText = """
 WakeyWakey v\(version) (build \(build))
